@@ -1,0 +1,25 @@
+{
+  "domain": "dhl-parcel-notice.example",
+  "ips": [
+    "192.0.2.99"
+  ],
+  "asn": "AS13335",
+  "provider": "CLOUDFLARENET, US",
+  "nameServers": [
+    "kim.ns.cloudflare.com",
+    "lee.ns.cloudflare.com"
+  ],
+  "mailServers": [],
+  "registrar": "Demo Registrar Delta (fictional)",
+  "registeredOn": "2026-09-02",
+  "certificates": {
+    "count": 3,
+    "ids": [
+      "9000000401"
+    ],
+    "issuers": [
+      "C=US, O=Google Trust Services, CN=WE1"
+    ]
+  },
+  "source": "synthetic demo data: fictional domain, IPs from documentation ranges (RFC 5737); AS13335/Cloudflare is used only as an example of a huge shared provider"
+}

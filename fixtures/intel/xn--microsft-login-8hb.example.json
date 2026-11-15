@@ -1,0 +1,27 @@
+{
+  "domain": "xn--microsft-login-8hb.example",
+  "ips": [
+    "203.0.113.25"
+  ],
+  "asn": "AS64500",
+  "provider": "DEMO-BULLETPROOF-HOSTING (fictional)",
+  "nameServers": [
+    "ns1.quiet-dns.example",
+    "ns2.quiet-dns.example"
+  ],
+  "mailServers": [
+    "mx.quiet-dns.example"
+  ],
+  "registrar": "Demo Registrar Alpha (fictional)",
+  "registeredOn": "2026-11-09",
+  "certificates": {
+    "count": 2,
+    "ids": [
+      "9000000101"
+    ],
+    "issuers": [
+      "C=US, O=Let's Encrypt, CN=R11"
+    ]
+  },
+  "source": "synthetic demo data: fictional domain, IPs from documentation ranges (RFC 5737); AS13335/Cloudflare is used only as an example of a huge shared provider"
+}

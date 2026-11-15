@@ -1,0 +1,17 @@
+{
+  "domain": "bounces.github.com",
+  "ips": [],
+  "asn": null,
+  "provider": null,
+  "nameServers": [],
+  "mailServers": [],
+  "registrar": null,
+  "registeredOn": null,
+  "certificates": {
+    "count": null,
+    "ids": [],
+    "issuers": [],
+    "note": "not available: The operation was aborted due to timeout"
+  },
+  "source": "recorded live on 2026-11-15"
+}
