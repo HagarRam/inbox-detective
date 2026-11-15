@@ -1,9 +1,7 @@
 // brands.js
-// A small list of brands that attackers often pretend to be,
-// with the real domains each brand actually sends email from.
-// Used to catch "PayPal" in the display name coming from a random domain,
-// and look-alike domains such as "paypal-secure-login.com".
-// This list is short on purpose: easy to read, easy to extend.
+// A short list of brands that attackers often pretend to be,
+// with the real domains each brand sends email from.
+// Short on purpose: easy to read, easy to extend.
 
 const BRANDS = {
   paypal: ["paypal.com"],
@@ -16,17 +14,19 @@ const BRANDS = {
   dhl: ["dhl.com"],
   fedex: ["fedex.com"],
   facebook: ["facebook.com", "facebookmail.com", "meta.com"],
-  instagram: ["instagram.com", "mail.instagram.com"],
   linkedin: ["linkedin.com"],
   docusign: ["docusign.com", "docusign.net"],
   dropbox: ["dropbox.com"],
 };
 
-// True if "domain" is the brand's real domain or a subdomain of it
-// (mail.paypal.com is fine, paypal.com.evil.io is NOT).
+// True if the domain is the brand's real domain, or a subdomain of it.
+// "mail.paypal.com" -> true.  "paypal.com.evil.io" -> false.
 function isOfficialDomain(brand, domain) {
   if (!domain) return false;
-  return BRANDS[brand].some((d) => domain === d || domain.endsWith("." + d));
+  for (const real of BRANDS[brand]) {
+    if (domain === real || domain.endsWith("." + real)) return true;
+  }
+  return false;
 }
 
 module.exports = { BRANDS, isOfficialDomain };

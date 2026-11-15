@@ -1,34 +1,28 @@
 // analyze.js
-// The full pipeline in one place:
-//   raw email -> parseEmail -> every analyzer -> score -> result
-// Both the demo script and the server call this function.
+// The full pipeline:  raw email -> parseEmail -> all checks -> score -> result
+// Both demo.js and server.js use this file.
 
 const { parseEmail } = require("./parseEmail");
-const { ALL_ANALYZERS } = require("./analyzers");
+const { ALL_CHECKS } = require("./analyzers");
 const { scoreFindings } = require("./score");
 
-// Pure part: takes an already parsed email. Easy to test.
+// Runs every check on an already parsed email. No network, easy to test.
 function analyzeParsed(email) {
-  const findings = ALL_ANALYZERS.flatMap((check) => check(email));
+  const findings = [];
+  for (const check of ALL_CHECKS) {
+    for (const f of check(email)) {
+      findings.push(f);
+    }
+  }
 
-  // Show the strongest signals first (bad ones, then good ones).
+  // Strongest signals first (largest points, good or bad).
   findings.sort((a, b) => Math.abs(b.points) - Math.abs(a.points));
 
   const { score, verdict } = scoreFindings(findings);
-  return {
-    score,
-    verdict,
-    findings,
-    summary: {
-      from: email.from ? email.from.address : null,
-      subject: email.subject,
-      linkCount: email.links.length,
-      attachmentCount: email.attachments.length,
-    },
-  };
+  return { score, verdict, findings, subject: email.subject };
 }
 
-// Full version: raw .eml text or Buffer in, result out.
+// Raw .eml text in, result out.
 async function analyzeRaw(raw) {
   const email = await parseEmail(raw);
   return analyzeParsed(email);
