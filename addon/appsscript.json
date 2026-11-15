@@ -2,18 +2,32 @@
   "timeZone": "Asia/Jerusalem",
   "runtimeVersion": "V8",
   "exceptionLogging": "STACKDRIVER",
+  "dependencies": {
+    "enabledAdvancedServices": [
+      {
+        "userSymbol": "Gmail",
+        "version": "v1",
+        "serviceId": "gmail"
+      }
+    ]
+  },
   "oauthScopes": [
     "https://www.googleapis.com/auth/gmail.addons.execute",
     "https://www.googleapis.com/auth/gmail.addons.current.message.readonly",
+    "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/script.external_request"
   ],
   "urlFetchWhitelist": [
-    "https://REPLACE-WITH-YOUR-BACKEND-HOST/"
+    "https://REPLACE-WITH-YOUR-BACKEND-HOST/",
+    "https://gmail.googleapis.com/"
   ],
   "addOns": {
     "common": {
       "name": "Inbox Detective",
-      "logoUrl": "https://www.gstatic.com/images/icons/material/system/1x/label_googblue_24dp.png"
+      "logoUrl": "https://www.gstatic.com/images/icons/material/system/1x/label_googblue_24dp.png",
+      "homepageTrigger": {
+        "runFunction": "onHomepage"
+      }
     },
     "gmail": {
       "contextualTriggers": [
