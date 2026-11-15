@@ -1,0 +1,25 @@
+{
+  "domain": "fastmail-drop.example",
+  "ips": [
+    "198.51.100.77"
+  ],
+  "asn": "AS64501",
+  "provider": "DEMO-CHEAP-VPS (fictional)",
+  "nameServers": [
+    "ns1.parked-zone.example",
+    "ns2.parked-zone.example"
+  ],
+  "mailServers": [
+    "mail.parked-zone.example"
+  ],
+  "registrar": "Demo Registrar Beta (fictional)",
+  "registeredOn": "2026-11-03",
+  "certificates": {
+    "count": 0,
+    "ids": [],
+    "issuers": [
+      "C=US, O=Let's Encrypt, CN=R11"
+    ]
+  },
+  "source": "synthetic demo data: fictional domain, IPs from documentation ranges (RFC 5737); AS13335/Cloudflare is used only as an example of a huge shared provider"
+}

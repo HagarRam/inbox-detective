@@ -1,0 +1,13 @@
+From: "Google Docs" <share@docs-sharing-notify.example>
+To: inboxdetectivedemo@gmail.com
+Subject: Noa Levi shared a document with you
+Date: Sat, 07 Nov 2026 20:18:00 +0200
+Message-ID: <demo-0008@docs-sharing-notify.example>
+X-Demo-Fixture: synthetic test email, not real
+Authentication-Results: mx.google.com; spf=pass smtp.mailfrom=docs-sharing-notify.example; dkim=none; dmarc=none
+Content-Type: text/html; charset=utf-8
+
+<html><body>
+<p>Noa Levi shared "Q4 budget" with you. Sign in to view.</p>
+<a href="https://xn--gogle-docs-4ib.example/view?id=88">Open in Docs</a>
+</body></html>
