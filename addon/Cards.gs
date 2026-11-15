@@ -17,11 +17,15 @@ function buildResultCard(result) {
 }
 
 function buildScoreSection(result) {
-  const scoreText = CardService.newDecoratedText()
+  return CardService.newCardSection().addWidget(buildScoreWidget(result));
+}
+
+// "100 / 100" with "🔴 MALICIOUS" under it. Used here and in the scan results.
+function buildScoreWidget(result) {
+  return CardService.newDecoratedText()
     .setTopLabel("Score (estimate)")
     .setText("<b>" + result.score + " / 100</b>")
     .setBottomLabel(verdictIcon(result.verdict) + " " + result.verdict.toUpperCase());
-  return CardService.newCardSection().addWidget(scoreText);
 }
 
 function buildFindingsSection(findings) {
