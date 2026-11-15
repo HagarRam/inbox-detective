@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Inbox Detective Dashboard</title>
+  <link rel="stylesheet" href="/dashboard/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>Inbox Detective</h1>
+    <p class="muted">Mailbox overview. Scores and campaigns are estimates from fixed rules and passive lookups, not proof.</p>
+  </header>
+  <main>
+    <section id="summary" class="tiles"></section>
+
+    <section class="panel">
+      <h2>Threats over time</h2>
+      <div class="chart"><canvas id="timeline"></canvas></div>
+    </section>
+
+    <section class="panel">
+      <h2>Types of scams</h2>
+      <div class="chart"><canvas id="scamTypes"></canvas></div>
+    </section>
+
+    <section class="panel wide">
+      <h2>Campaigns: different emails, same infrastructure</h2>
+      <p class="muted">Each dot is a domain. A line means the two domains share rare infrastructure (same name server, IP, certificate or registration day). Huge shared services like Cloudflare count almost nothing.</p>
+      <div id="graph"></div>
+      <div id="campaigns"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Who pretends to be whom</h2>
+      <table id="impersonation"><thead><tr><th>Brand</th><th>Fake domains</th><th>Emails</th></tr></thead><tbody></tbody></table>
+    </section>
+
+    <section class="panel">
+      <h2>Sender drift</h2>
+      <p class="muted">The same sender name, suddenly from different infrastructure.</p>
+      <div id="drift"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Riskiest senders</h2>
+      <table id="senders"><thead><tr><th>Sender</th><th>Domain</th><th>Emails</th><th>Top score</th></tr></thead><tbody></tbody></table>
+    </section>
+
+    <section class="panel">
+      <h2>How to protect yourself</h2>
+      <ul id="recommendations"></ul>
+    </section>
+  </main>
+  <script src="/dashboard/static/vendor/chart.umd.js"></script>
+  <script src="/dashboard/static/vendor/vis-network.min.js"></script>
+  <script src="/dashboard/static/app.js"></script>
+</body>
+</html>

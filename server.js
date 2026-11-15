@@ -12,6 +12,7 @@ require("dotenv").config();
 const crypto = require("crypto");
 const express = require("express");
 const { analyzeRaw } = require("./analyze");
+const { dashboardRoutes } = require("./dashboard/routes");
 
 const app = express();
 
@@ -60,6 +61,9 @@ app.post("/analyze", requireApiKey, async (req, res) => {
     res.status(500).json({ error: "Could not analyze this email" });
   }
 });
+
+// The mailbox scan and the dashboard (see dashboard/routes.js).
+app.use(dashboardRoutes(requireApiKey));
 
 // Start listening only when run directly (node server.js),
 // not when a test file imports the app.
