@@ -35,10 +35,12 @@ function headerLines(e, index) {
   return lines;
 }
 
-// A harmless text file pretending to be a program (the attachment check only reads its NAME).
+// A harmless file with a tricky NAME (the attachment check only reads the name).
+// We use ".html" because Gmail refuses .exe/.js attachments; attackers really use
+// HTML attachments that open a fake login page ("HTML smuggling").
 function attachmentPart(fileName) {
-  const content = Buffer.from("This is a harmless demo file, not a real program.").toString("base64");
-  return ["--demo-boundary", "Content-Type: application/octet-stream; name=\"" + fileName + "\"",
+  const content = Buffer.from("<p>Harmless demo file. It does nothing.</p>").toString("base64");
+  return ["--demo-boundary", "Content-Type: text/html; name=\"" + fileName + "\"",
     "Content-Disposition: attachment; filename=\"" + fileName + "\"", "Content-Transfer-Encoding: base64", "", content];
 }
 

@@ -16,4 +16,10 @@ into a **test** Gmail inbox, so the add-on and the dashboard have realistic data
 3. Paste `appsscript.json`, and create `Seed.gs` and `DemoEmails.gs` with the content from this folder.
 4. Services (+) -> Gmail API -> Add.
 5. Choose `importDemoEmails` and click Run. Approve the permissions (select all).
+   If it stops in the middle, fix the cause and run it again: it continues where it stopped
+   (the `NEXT_INDEX` script property), so no email is imported twice.
 6. The log says "Imported 50 demo emails". Refresh Gmail.
+
+Note: Gmail refuses emails with executable attachments (`.exe`, `.js`, ...). The demo
+"malicious attachments" are therefore `.html` files with a double extension
+(`invoice.pdf.html`), a technique attackers really use to open fake login pages.
