@@ -1,0 +1,29 @@
+From: "PayPal Service" <service@paypal-account-review.example>
+Reply-To: <billing-team@fastmail-drop.example>
+Return-Path: <bounce@bulk-sender.example>
+To: victim@gmail.com
+Subject: Final notice: unauthorized login on your account
+Date: Mon, 09 Nov 2026 08:14:00 +0000
+Authentication-Results: mx.google.com; spf=softfail smtp.mailfrom=bulk-sender.example; dkim=none; dmarc=fail header.from=paypal-account-review.example
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="BOUNDARY1"
+
+--BOUNDARY1
+Content-Type: text/plain; charset=utf-8
+
+Hello,
+
+We detected an unauthorized login on your PayPal account.
+Your account will be suspended within 24 hours unless you confirm your identity.
+
+Review the attached invoice or log in here: https://bit.ly/3xYzAbc
+
+PayPal Security Team
+
+--BOUNDARY1
+Content-Type: application/octet-stream; name="invoice.pdf.exe"
+Content-Disposition: attachment; filename="invoice.pdf.exe"
+Content-Transfer-Encoding: base64
+
+VGhpcyBpcyBhIGhhcm1sZXNzIHBsYWNlaG9sZGVyLCBub3QgcmVhbCBtYWx3YXJlLgo=
+--BOUNDARY1--

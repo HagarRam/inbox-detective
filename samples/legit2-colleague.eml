@@ -1,0 +1,15 @@
+From: "Dana Levi" <dana@example.org>
+To: user@gmail.com
+Subject: Notes from today's meeting
+Date: Thu, 12 Nov 2026 15:30:00 +0000
+Authentication-Results: mx.google.com; dkim=pass header.i=@example.org; spf=pass smtp.mailfrom=example.org; dmarc=pass header.from=example.org
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Hi,
+
+Attached are the notes from today's meeting. Let me know if I missed anything.
+The next meeting is on Sunday at 10:00.
+
+Thanks,
+Dana
