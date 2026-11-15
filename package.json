@@ -1,10 +1,14 @@
 {
   "name": "inbox-detective",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Gmail add-on and backend that score emails for phishing and link them into campaigns",
+  "main": "server.js",
   "scripts": {
-    "test": "node --test"
+    "start": "node server.js",
+    "test": "node --test",
+    "demo": "node demo.js",
+    "campaigns": "node scripts/campaignDemo.js",
+    "seed-dashboard": "node scripts/seedDashboard.js"
   },
   "keywords": [],
   "author": "",

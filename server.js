@@ -6,6 +6,10 @@
 // - Every /analyze request must carry the shared secret (X-API-Key header).
 //   The secret lives in the .env file / environment, never in the code.
 // - The request body has a size limit, so nobody can send a huge payload.
+// - Rate limiting: at most 120 requests per minute per client.
+// - Safe headers on every answer, and errors never reveal internal details.
+// - The server listens only on 127.0.0.1: it is reachable from outside ONLY
+//   through the HTTPS tunnel, never directly.
 // - We never store the email. We analyze it in memory and forget it.
 
 require("dotenv").config();
@@ -13,8 +17,13 @@ const crypto = require("crypto");
 const express = require("express");
 const { analyzeRaw } = require("./analyze");
 const { dashboardRoutes } = require("./dashboard/routes");
+const { rateLimit } = require("./security/rateLimit");
+const { securityHeaders, errorHandler } = require("./security/headers");
 
 const app = express();
+app.disable("x-powered-by"); // do not announce that we run Express
+app.use(securityHeaders);
+app.use(rateLimit(120));
 
 // Only accept JSON, and at most 5 MB (an email with small attachments).
 app.use(express.json({ limit: "5mb" }));
@@ -65,11 +74,14 @@ app.post("/analyze", requireApiKey, async (req, res) => {
 // The mailbox scan and the dashboard (see dashboard/routes.js).
 app.use(dashboardRoutes(requireApiKey));
 
+// Must be the last app.use: catches every error above.
+app.use(errorHandler);
+
 // Start listening only when run directly (node server.js),
 // not when a test file imports the app.
 if (require.main === module) {
   const port = process.env.PORT || 3000;
-  app.listen(port, () => {
+  app.listen(port, "127.0.0.1", () => {
     console.log(`Server running on http://localhost:${port}`);
   });
 }
