@@ -1,0 +1,14 @@
+From: "DHL Express" <tracking@dhl-parcel-notice.example>
+To: inboxdetectivedemo@gmail.com
+Subject: Your parcel could not be delivered - action required
+Date: Mon, 03 Aug 2026 09:14:00 +0300
+Message-ID: <demo-0004@dhl-parcel-notice.example>
+X-Demo-Fixture: synthetic test email, not real
+Authentication-Results: mx.google.com; spf=fail smtp.mailfrom=dhl-parcel-notice.example; dkim=none; dmarc=fail header.from=dhl-parcel-notice.example
+Content-Type: text/html; charset=utf-8
+
+<html><body>
+<p>We tried to deliver your parcel but nobody was home.</p>
+<p>Pay a small redelivery fee within 24 hours or the parcel will be returned:</p>
+<a href="http://bit.ly/demo-redeliver">Schedule redelivery</a>
+</body></html>

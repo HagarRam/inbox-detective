@@ -1,0 +1,22 @@
+{
+  "domain": "gmail-business-mail.example",
+  "ips": [],
+  "asn": null,
+  "provider": null,
+  "nameServers": [
+    "ns1.freedns-demo.example"
+  ],
+  "mailServers": [
+    "mx1.freemail-demo.example"
+  ],
+  "registrar": "Demo Registrar Epsilon (fictional)",
+  "registeredOn": "2026-11-13",
+  "certificates": {
+    "count": 0,
+    "ids": [],
+    "issuers": [
+      "C=US, O=Let's Encrypt, CN=R11"
+    ]
+  },
+  "source": "synthetic demo data: fictional domain, IPs from documentation ranges (RFC 5737); AS13335/Cloudflare is used only as an example of a huge shared provider"
+}
