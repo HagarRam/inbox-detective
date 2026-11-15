@@ -31,7 +31,47 @@ function buildHomepageCard(emails) {
   return CardService.newCardBuilder()
     .setHeader(CardService.newCardHeader().setTitle("Inbox Detective"))
     .addSection(section)
+    .addSection(buildDashboardSection())
     .build();
+}
+
+// Second part of the home screen: scan the whole mailbox, then open the dashboard.
+function buildDashboardSection() {
+  const explain = CardService.newTextParagraph().setText(
+    "Scan your whole mailbox (headers only, " + CHUNK_SIZE + " emails per click) and see campaigns, trends and advice."
+  );
+  const scan = CardService.newTextButton()
+    .setText("Scan mailbox (next " + CHUNK_SIZE + ")")
+    .setOnClickAction(CardService.newAction().setFunctionName("onMailboxScanClick"));
+  const open = CardService.newTextButton()
+    .setText("Open dashboard")
+    .setOnClickAction(CardService.newAction().setFunctionName("onOpenDashboardClick"));
+  return CardService.newCardSection().setHeader("Mailbox dashboard")
+    .addWidget(explain)
+    .addWidget(CardService.newButtonSet().addButton(scan).addButton(open));
+}
+
+function onMailboxScanClick(e) {
+  try {
+    const result = scanNextChunk();
+    let text = "Scanned " + result.scanned + " emails (" + result.total + " in the dashboard).";
+    text += result.done ? " The whole mailbox is scanned." : " Click again to continue.";
+    return notify(text);
+  } catch (err) {
+    console.error(err);
+    return notify("Scan failed: " + err.message);
+  }
+}
+
+// Ask the server for a one-time link and open it in a new browser tab.
+function onOpenDashboardClick(e) {
+  try {
+    const link = CardService.newOpenLink().setUrl(getDashboardUrl());
+    return CardService.newActionResponseBuilder().setOpenLink(link).build();
+  } catch (err) {
+    console.error(err);
+    return notify("Could not open the dashboard: " + err.message);
+  }
 }
 
 // One checkbox per email: "Sender: Subject". The value is the email id.

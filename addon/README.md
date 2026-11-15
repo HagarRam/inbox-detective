@@ -8,6 +8,10 @@ One add-on with two screens:
   (sender and subject only) with checkboxes. Tick some and click "Scan selected emails":
   a results card shows the score, verdict and reasons for each one,
   **without opening them**.
+- **Mailbox dashboard (home screen):** "Scan mailbox" sends the **headers only** of the
+  next 50 emails to `POST /scan-batch` (where it stopped is saved in User Properties).
+  "Open dashboard" asks the server for a one-time token and opens the dashboard
+  in a new tab.
 
 ## Files
 
@@ -18,7 +22,8 @@ One add-on with two screens:
 | `Homepage.gs` | Home screen: email list with checkboxes, scan button, results card |
 | `Scanner.gs` | Lists the newest emails and scans the ticked ones |
 | `GmailApi.gs` | Small read-only helpers for the Gmail API |
-| `Backend.gs` | Calls the backend and checks the answer |
+| `MailboxScan.gs` | Scans the mailbox in chunks of 50, headers only |
+| `Backend.gs` | Calls the backend (analyze, scan batch, dashboard token) |
 | `Cards.gs` | Builds the result card |
 
 ## Security decisions
