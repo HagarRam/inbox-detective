@@ -1,6 +1,7 @@
 // Seed.gs
 // Puts the 50 fictional demo emails (DemoEmails.gs) into the TEST Gmail inbox.
-// Run importDemoEmails() ONCE from the editor.
+// Run importDemoEmails() from the editor. If it stops in the middle, run it again:
+// it continues from where it stopped (saved in the NEXT_INDEX script property).
 //
 // It uses Gmail's "import": the emails appear in the inbox as if they were received,
 // but nothing is sent to anyone. This is a SEPARATE project from the add-on, so the
@@ -11,17 +12,18 @@ const IMPORT_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/impo
 
 function importDemoEmails() {
   const props = PropertiesService.getScriptProperties();
-  if (props.getProperty("IMPORTED") === "yes") {
-    console.log("Already imported. To import again, delete the IMPORTED script property first.");
+  // Where we stopped last time, so a second run continues and never makes duplicates.
+  let next = Number(props.getProperty("NEXT_INDEX") || 0);
+  if (next >= DEMO_EMAILS.length) {
+    console.log("All " + DEMO_EMAILS.length + " demo emails are already imported.");
     return;
   }
-  let count = 0;
-  for (const raw of DEMO_EMAILS) {
-    importOne(raw);
-    count++;
+  while (next < DEMO_EMAILS.length) {
+    importOne(DEMO_EMAILS[next]); // stops here with an error if Gmail refuses an email
+    next++;
+    props.setProperty("NEXT_INDEX", String(next)); // saved after EVERY email
   }
-  props.setProperty("IMPORTED", "yes"); // so a second click does not create duplicates
-  console.log("Imported " + count + " demo emails into the inbox.");
+  console.log("Imported all " + DEMO_EMAILS.length + " demo emails into the inbox.");
 }
 
 // One email: Gmail wants it in "base64url" form, in the inbox, unread.

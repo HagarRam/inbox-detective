@@ -17,7 +17,7 @@ const bankAndPaypal = [
   { name: "Bank Security Team", from: "notice@secure-bank-login.example", returnPath: "bounce@mailer-xyz.example", auth: "fail", date: "2026-11-09T06:20:00Z",
     subject: "Final notice: update your card details", body: "<p>Final notice: update your card details today or your card will be suspended.</p>" + link("http://login-update.example/card?id=13", "Update card details") },
   { name: "PayPal Service", from: "service@paypal-account-review.example", replyTo: "billing-team@fastmail-drop.example", returnPath: "bounce@bulk-sender.example", auth: "softfail", date: "2026-11-05T10:30:00Z",
-    subject: "Final notice: unauthorized login on your account", body: "<p>Unauthorized login detected. Confirm your identity within 24 hours. The invoice is attached.</p>", attachment: "invoice.pdf.exe" },
+    subject: "Final notice: unauthorized login on your account", body: "<p>Unauthorized login detected. Confirm your identity within 24 hours. The invoice is attached.</p>", attachment: "invoice.pdf.html" },
   { name: "PayPal", from: "security@paypal-account-review.example", replyTo: "billing-team@fastmail-drop.example", returnPath: "bounce@bulk-sender.example", auth: "softfail", date: "2026-11-07T13:05:00Z",
     subject: "Your payment of 349.99 USD is on hold", body: "<p>Your payment is on hold. Verify your account to release it.</p>" + link("https://bit.ly/demo-pp-hold", "paypal.com/resolution") },
   { name: "PayPal Resolution Center", from: "resolution@paypal-account-review.example", returnPath: "bounce@bulk-sender.example", auth: "softfail", date: "2026-11-10T09:15:00Z",
@@ -69,7 +69,7 @@ const delivery = [
   { name: "DHL Express", from: "tracking@dhl-parcel-notice.example", auth: "fail", date: "2026-09-29T12:10:00Z",
     subject: "Customs fee required for your package", body: "<p>A customs fee is required. Enter your credit card to release the package.</p>" + link("http://bit.ly/demo-customs", "dhl.com/customs") },
   { name: "DHL Delivery", from: "noreply@dhl-parcel-notice.example", auth: "fail", date: "2026-10-14T09:30:00Z",
-    subject: "Delivery attempt failed", body: "<p>We tried to deliver your package. Download the shipping label.</p>", attachment: "shipping_label.pdf.js" },
+    subject: "Delivery attempt failed", body: "<p>We tried to deliver your package. Download the shipping label.</p>", attachment: "shipping_label.pdf.htm" },
   { name: "DHL Express", from: "tracking@dhl-parcel-notice.example", auth: "fail", date: "2026-10-28T16:00:00Z",
     subject: "Last chance to schedule your delivery", body: "<p>Final notice: schedule your delivery or the package will be returned.</p>" + link("http://bit.ly/demo-schedule", "dhl.com/schedule") },
 ];
