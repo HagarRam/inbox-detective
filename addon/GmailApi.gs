@@ -21,9 +21,19 @@ function gmailRequest(method, path, body) {
   }
   const response = UrlFetchApp.fetch(GMAIL_API + path, options);
   if (response.getResponseCode() >= 300) {
-    throw new Error("Gmail API answered " + response.getResponseCode());
+    throw new Error("Gmail API answered " + response.getResponseCode() + ": " + gmailErrorReason(response));
   }
   return JSON.parse(response.getContentText() || "{}");
+}
+
+// Google explains every error in { error: { message } }. Show that reason,
+// so "403" turns into something like "Gmail API has not been used in project ...".
+function gmailErrorReason(response) {
+  try {
+    return JSON.parse(response.getContentText()).error.message;
+  } catch (err) {
+    return "no reason given";
+  }
 }
 
 // Returns { labelName: labelId } for the given names. Creates missing labels.
