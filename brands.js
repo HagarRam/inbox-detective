@@ -17,6 +17,7 @@ const BRANDS = {
   linkedin: ["linkedin.com"],
   docusign: ["docusign.com", "docusign.net"],
   dropbox: ["dropbox.com"],
+  github: ["github.com"],
 };
 
 // True if the domain is the brand's real domain, or a subdomain of it.

@@ -1,0 +1,13 @@
+From: "GitHub" <noreply@github-account-notice.example>
+Return-Path: <bounce@github-account-notice.example>
+To: user@gmail.com
+Subject: [GitHub] Please verify your account to keep access
+Date: Sat, 14 Nov 2026 09:40:00 +0000
+Authentication-Results: mx.google.com; dkim=none; spf=softfail smtp.mailfrom=github-account-notice.example; dmarc=none header.from=github-account-notice.example
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><body>
+<p>We noticed unusual sign-in activity. Please verify your account within 24 hours or access will be suspended.</p>
+<p><a href="https://github-account-notice.example/session/verify">github.com/settings/security</a></p>
+</body></html>
