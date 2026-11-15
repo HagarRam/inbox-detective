@@ -4,10 +4,10 @@ One add-on with two screens:
 
 - **An email is open:** the add-on reads that email as raw text, sends it to the backend
   `POST /analyze` (with the `X-API-Key` header) and shows the score, verdict and findings.
-- **No email is open (home screen):** a "Scan marked emails" button checks emails
-  **before they are opened**. Tick emails in the list, add the label `Scan`, click the button.
-  Each email gets a verdict label (`🔴 Malicious`, `🟠 Suspicious`, `🟢 Safe`) and a pop-up
-  says how many were scanned and how many marked emails are still waiting.
+- **No email is open (home screen):** the add-on lists the 10 newest inbox emails
+  (sender and subject only) with checkboxes. Tick some and click "Scan selected emails":
+  a results card shows the score, verdict and reasons for each one,
+  **without opening them**.
 
 ## Files
 
@@ -15,9 +15,9 @@ One add-on with two screens:
 |---|---|
 | `appsscript.json` | Manifest: name, scopes, allowed URLs, the two triggers |
 | `Code.gs` | Runs when an email is opened |
-| `Homepage.gs` | Home screen, the scan button and its pop-up |
-| `Scanner.gs` | Scans emails labeled `Scan` and labels them with the verdict |
-| `GmailApi.gs` | Small helpers for the Gmail API (labels, raw email) |
+| `Homepage.gs` | Home screen: email list with checkboxes, scan button, results card |
+| `Scanner.gs` | Lists the newest emails and scans the ticked ones |
+| `GmailApi.gs` | Small read-only helpers for the Gmail API |
 | `Backend.gs` | Calls the backend and checks the answer |
 | `Cards.gs` | Builds the result card |
 
@@ -27,18 +27,20 @@ One add-on with two screens:
   for example a tracking pixel tells the sender "this address is alive".
   The scanner reads the email only as raw text. It never shows it or loads its images,
   and the email stays unread.
-- **One add-on, honest trade-off:** to scan emails that are not open and to add labels,
-  the add-on needs `gmail.modify` (read emails, change labels). This is wider than
-  "only the open email". I chose one add-on for a simpler user experience, and asked for
-  the smallest scope that allows it: `gmail.modify`, **not** full access
-  (`https://mail.google.com/`, which can even delete mail forever).
-  That is also why the scanner calls the Gmail API directly instead of `GmailApp`,
-  which needs full access.
+- **One add-on, honest trade-off:** to scan emails that are not open, the add-on needs
+  `gmail.readonly` (read emails). This is wider than "only the open email", but it is
+  read-only: the add-on can **not** send, change or delete anything.
+  A first version added verdict labels to emails, which needed `gmail.modify`
+  (which also allows sending). I dropped the labels and moved to `gmail.readonly`,
+  so the extra feature costs as little permission as possible.
+  The scanner calls the Gmail API directly instead of `GmailApp`, because `GmailApp`
+  needs full access (`https://mail.google.com/`, which can even delete mail forever).
 - **Allow-list:** `urlFetchWhitelist` lets the add-on call only our backend and the Gmail API.
 - **No secrets in code:** `BACKEND_URL` and `API_KEY` live in Script Properties.
 - **Escaping:** text from the email is escaped before it is put in a card.
 - **No redirects:** the request to the backend never follows a redirect.
 - **Small batches:** one click scans at most 5 emails, because Google stops a click after 30 seconds.
+- **The list shows only sender and subject** (`format=metadata`), never the body.
 
 ## Setup (test deployment)
 
@@ -48,6 +50,7 @@ One add-on with two screens:
 3. Go to https://script.google.com with the **test** Gmail account, create a new project.
 4. Project Settings: tick "Show appsscript.json manifest file in editor".
 5. Create the `.gs` files listed above and paste the content from this folder.
+   Under Services, add the **Gmail API** (this turns the API on for the project).
    Paste `appsscript.json` and replace `REPLACE-WITH-YOUR-BACKEND-HOST` with the tunnel host.
 6. Project Settings -> Script Properties: add `BACKEND_URL` (the tunnel address, no `/` at the end)
    and `API_KEY` (same value as `API_SECRET`).
