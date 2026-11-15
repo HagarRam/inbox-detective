@@ -53,7 +53,8 @@ different-looking emails that come from the **same attacker infrastructure** int
 | `dashboard/` | Metadata store, one-time tokens, dashboard data and page. |
 | `security/` | Rate limiting, safe headers, error handler. |
 | `fixtures/intel/` | Saved intel for replay mode. |
-| `samples/` | 11 sample emails (9 phishing, 2 legitimate). |
+| `samples/` | 11 sample emails (9 phishing, 2 legitimate) for tests and `npm run demo`. |
+| `seeder/` | Separate Apps Script project that imports 50 fictional demo emails into the test inbox. |
 
 ## How the scoring works
 
@@ -151,7 +152,9 @@ The `.example` domains in the samples do not exist, so their replay files are **
 4. **Click *Scan mailbox*, then *Open dashboard*.** Show the campaign graph: the "bank" and "PayPal" emails are one campaign (same IP, name servers, certificate, registration day). The HR and "Google Docs" emails are linked by a rare mail server even though both sit on Cloudflare, and the Cloudflare links count only +0.1 / +0.3.
 5. **Sender drift:** "GitHub" first from github.com (Microsoft network), then from `github-account-notice.example` on a different network.
 
-Without Gmail: `npm run seed-dashboard` fills the dashboard from the samples (headers only, the same as the real scan).
+**Demo mailbox:** the test inbox is filled with 50 fictional emails (about 30 phishing in 4 campaigns, 20 normal) by a separate Apps Script project: see [seeder/README.md](seeder/README.md). It uses Gmail *import*, so nothing is sent to anyone, and the add-on never needs the "insert emails" permission.
+
+Without Gmail: `npm run seed-dashboard` fills the dashboard from `samples/` (headers only, the same as the real scan).
 
 ## Limitations and honest trade-offs
 
