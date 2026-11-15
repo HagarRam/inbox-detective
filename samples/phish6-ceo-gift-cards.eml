@@ -1,0 +1,17 @@
+From: "Daniel Cohen (CEO)" <daniel.cohen.ceo@gmail-business-mail.example>
+Reply-To: <d.cohen.private@quick-inbox.example>
+To: inboxdetectivedemo@gmail.com
+Subject: Quick favor - are you at your desk?
+Date: Tue, 06 Oct 2026 16:05:00 +0300
+Message-ID: <demo-0006@gmail-business-mail.example>
+X-Demo-Fixture: synthetic test email, not real
+Authentication-Results: mx.google.com; spf=none smtp.mailfrom=gmail-business-mail.example; dkim=none; dmarc=none
+Content-Type: text/plain; charset=utf-8
+
+Hi,
+
+I am in a meeting and cannot talk. I need you to buy 5 gift cards for a client
+today. This is urgent and confidential, please do not mention it to anyone.
+Reply as soon as you see this and I will send the details.
+
+Daniel

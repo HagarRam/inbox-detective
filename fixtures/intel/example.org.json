@@ -1,0 +1,25 @@
+{
+  "domain": "example.org",
+  "ips": [],
+  "asn": null,
+  "provider": null,
+  "nameServers": [],
+  "mailServers": [],
+  "registrar": "ICANN",
+  "registeredOn": "1995-08-31",
+  "certificates": {
+    "count": 58,
+    "ids": [
+      "29653203136",
+      "29597863421",
+      "28361105002",
+      "28361084467",
+      "28361106104"
+    ],
+    "issuers": [
+      "C=US, O=SSL Corporation, CN=Cloudflare TLS Issuing ECC CA 3",
+      "C=US, O=SSL Corporation, CN=Cloudflare TLS Issuing RSA CA 3"
+    ]
+  },
+  "source": "recorded live on 2026-11-15"
+}

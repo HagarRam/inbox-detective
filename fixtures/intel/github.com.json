@@ -1,0 +1,30 @@
+{
+  "domain": "github.com",
+  "ips": [
+    "20.217.135.5"
+  ],
+  "asn": "AS8075",
+  "provider": "MICROSOFT-CORP-MSN-AS-BLOCK - Microsoft Corporation, US",
+  "nameServers": [
+    "dns1.p08.nsone.net",
+    "dns2.p08.nsone.net",
+    "dns3.p08.nsone.net",
+    "dns4.p08.nsone.net",
+    "ns-1283.awsdns-32.org",
+    "ns-1707.awsdns-21.co.uk",
+    "ns-421.awsdns-52.com",
+    "ns-520.awsdns-01.net"
+  ],
+  "mailServers": [
+    "github-com.mail.protection.outlook.com"
+  ],
+  "registrar": "MarkMonitor Inc.",
+  "registeredOn": "2007-10-09",
+  "certificates": {
+    "count": null,
+    "ids": [],
+    "issuers": [],
+    "note": "not available: The operation was aborted due to timeout"
+  },
+  "source": "recorded live on 2026-11-15"
+}
