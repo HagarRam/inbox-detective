@@ -41,9 +41,9 @@ function getLabelIds(names) {
   return ids;
 }
 
-// The emails that carry a label (at most 10 per run, to stay small and fast).
-function listMessagesWithLabel(labelId) {
-  const result = gmailRequest("get", "/messages?maxResults=10&labelIds=" + labelId);
+// The emails that carry a label (at most "max" of them).
+function listMessagesWithLabel(labelId, max) {
+  const result = gmailRequest("get", "/messages?maxResults=" + max + "&labelIds=" + labelId);
   return result.messages || [];
 }
 
