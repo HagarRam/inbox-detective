@@ -23,7 +23,7 @@ function analyzeParsed(email, intel = []) {
   findings.sort((a, b) => Math.abs(b.points) - Math.abs(a.points));
 
   const { score, verdict } = scoreFindings(findings);
-  return { score, verdict, findings, subject: email.subject, intel };
+  return { score, verdict, findings, subject: email.subject, from: email.from, date: email.date, intel };
 }
 
 // Raw .eml text in, result out.
