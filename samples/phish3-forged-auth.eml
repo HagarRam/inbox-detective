@@ -1,0 +1,16 @@
+Authentication-Results: mx.google.com; spf=neutral smtp.mailfrom=office365-support.example; dkim=none; dmarc=none
+Authentication-Results: mail.attacker.example; spf=pass; dkim=pass; dmarc=pass
+From: "Microsoft 365 Admin" <admin@office365-support.example>
+To: victim@gmail.com
+Subject: Your mailbox is full - act now
+Date: Tue, 10 Nov 2026 19:02:00 +0000
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><body>
+<p>Your mailbox storage is full. Incoming mail will be blocked immediately.</p>
+<p>Enter your password to keep your messages:</p>
+<a class="btn" style="color:blue"
+   href="http://192.0.2.15/owa/login.php">Keep my messages</a>
+<p><a href="https://login.microsoftonline.com@xn--microsft-login-8hb.example/auth">https://login.microsoftonline.com</a></p>
+</body></html>
