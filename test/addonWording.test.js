@@ -29,7 +29,7 @@ test("a full check of an opened email still says 'Likely safe'", () => {
 
 test("headers only + high score keeps the normal warning", () => {
   const bad = { mode: "headers-only", verdict: "malicious", score: 95, findings: [] };
-  assert.strictEqual(verdictText(bad), "🔴 Malicious");
+  assert.strictEqual(verdictText(bad), "🔴 Dangerous");
 });
 
 test("malicious from headers alone: tell the user NOT to open it", () => {

@@ -22,30 +22,45 @@ function scanOneEmail(messageId) {
 }
 
 // Put these emails in the queue and scan the first 5.
-function startScan(ids) {
-  saveQueue({ ids: ids, total: ids.length });
+// newScan = true: a new scan (the alert starts from zero). false: add to the current scan.
+function startScan(ids, newScan) {
+  if (newScan) saveLastScan([]);
+  saveQueue({ ids: ids });
   return scanNextInQueue();
 }
 
-// Scan the next 5 emails of the queue and remember each result for its row.
-// Returns { scanned, total, left, error }: error is the last problem, or "".
+// The short form of one result, for the alert and the Scan overview.
+function lastScanEntry(id, result) {
+  const from = result.from || {};
+  const sender = String(from.name || from.address || "(unknown sender)").slice(0, 40);
+  return { id: id, verdict: result.verdict, score: result.score, sender: sender, subject: String(result.subject || "(no subject)").slice(0, 80) };
+}
+
+// Scan the next 5 emails of the queue and remember each result.
+// Returns { scanned, left, error }: error is the last problem, or "".
 function scanNextInQueue() {
   const queue = getQueue();
   const now = queue.ids.splice(0, EMAILS_PER_CLICK); // take the first 5 out of the queue
+  const results = getLastScan();
   let error = "";
   for (const id of now) {
     const scan = scanOneEmail(id);
-    if (scan.error) error = scan.error;
-    else saveChip(id, scan.result);
+    if (scan.error) {
+      error = scan.error;
+    } else {
+      saveChip(id, scan.result);
+      results.push(lastScanEntry(id, scan.result));
+    }
   }
+  saveLastScan(results);
   saveQueue(queue);
-  return { scanned: queue.total - queue.ids.length, total: queue.total, left: queue.ids.length, error: error };
+  return { scanned: now.length, left: queue.ids.length, error: error };
 }
 
-// The pop-up message after a click, e.g. "Scanned 5 of 12. Click Continue scan for the next 5."
+// The pop-up message after a click, e.g. "Scanned 5 emails. 2 more are ticked: click Scan again."
 function progressText(progress) {
   if (progress.error) return friendlyError(progress.error);
-  if (progress.left === 0) return "Scanned " + progress.total + (progress.total === 1 ? " email." : " emails.");
-  const next = Math.min(EMAILS_PER_CLICK, progress.left);
-  return "Scanned " + progress.scanned + " of " + progress.total + ". Click Continue scan for the next " + next + ".";
+  const done = "Scanned " + progress.scanned + (progress.scanned === 1 ? " email." : " emails.");
+  if (progress.left === 0) return done;
+  return done + " " + progress.left + " more " + (progress.left === 1 ? "is" : "are") + " ticked: click Scan again.";
 }

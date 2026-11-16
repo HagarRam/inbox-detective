@@ -1,11 +1,15 @@
 // ScanState.gs
 // A small memory between clicks, in User Properties (only this user can see it):
 //   LIST_STATE  which list is shown: the search text and the page
-//   PAGE_ROWS   sender and subject of the emails on the shown page (for the Scan overview)
-//   SCAN_QUEUE  the emails still waiting to be scanned (5 per click)
-//   SCAN_CHIPS  the last result of each scanned email, for the tag on its row
+//   PAGE_ROWS   the emails of the shown page (so a tick can redraw without asking Gmail again)
+//   SCAN_QUEUE  ticked emails still waiting to be scanned (5 per click)
+//   SCAN_CHIPS  the pre-open result of each scanned email: hides it from the list,
+//               and warns when that email is opened later
+//   LAST_SCAN   the results of the current scan, for the alert and the Scan overview
+// One property holds about 9 KB, so every list has a maximum size.
 
-const MAX_CHIPS = 100; // one property holds about 9 KB, so we keep only the newest 100
+const MAX_CHIPS = 120;
+const MAX_LAST_SCAN = 30;
 
 function readJson(key, fallback) {
   const text = PropertiesService.getUserProperties().getProperty(key);
@@ -17,7 +21,7 @@ function saveJson(key, value) {
 }
 
 // { query, tokens, page, next }: tokens[page] is Gmail's token for the shown page
-// ("" for page 1), next is the token for the page after it.
+// ("" for page 1), next is the token for the page after it ("" = this is the last page).
 function newListState(query) {
   return { query: query, tokens: [""], page: 0, next: "" };
 }
@@ -30,9 +34,20 @@ function saveListState(state) {
   saveJson("LIST_STATE", state);
 }
 
-// { ids: [still to scan], total: how many were asked for }
+// [{ id, sender, subject, date }]. Shortened only to fit the storage; Gmail shortens the display.
+function savePageRows(rows) {
+  saveJson("PAGE_ROWS", rows.map(function (row) {
+    return { id: row.id, sender: row.sender.slice(0, 60), subject: row.subject.slice(0, 120), date: row.date };
+  }));
+}
+
+function getPageRows() {
+  return readJson("PAGE_ROWS", []);
+}
+
+// { ids: [still to scan] }
 function getQueue() {
-  return readJson("SCAN_QUEUE", { ids: [], total: 0 });
+  return readJson("SCAN_QUEUE", { ids: [] });
 }
 
 function saveQueue(queue) {
@@ -53,13 +68,11 @@ function saveChip(id, result) {
   saveJson("SCAN_CHIPS", chips);
 }
 
-// The emails of the shown page, short: [{ id, sender, subject }]
-function savePageRows(rows) {
-  saveJson("PAGE_ROWS", rows.map(function (row) {
-    return { id: row.id, sender: shorten(row.sender, 40), subject: shorten(row.subject, 70) };
-  }));
+// [{ id, verdict, score, sender, subject }] of the current scan.
+function getLastScan() {
+  return readJson("LAST_SCAN", []);
 }
 
-function getPageRows() {
-  return readJson("PAGE_ROWS", []);
+function saveLastScan(results) {
+  saveJson("LAST_SCAN", results.slice(-MAX_LAST_SCAN));
 }

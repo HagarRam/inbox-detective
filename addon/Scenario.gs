@@ -20,7 +20,7 @@ function paragraph(title, body) {
   return CardService.newTextParagraph().setText("<b>" + ltr(title) + "</b><br>" + body);
 }
 
-// One section: the estimate note and the facts are always visible; steps and protections fold away.
+// One collapsible section: the "estimate" note is always visible; the rest opens with "show more".
 function scenarioSection(scenario) {
   const protect = scenario.protections;
   return CardService.newCardSection()
@@ -32,5 +32,5 @@ function scenarioSection(scenario) {
     .addWidget(paragraph("Your IT admin can", bulletList(protect.admin)))
     .addWidget(paragraph("Your organization can", bulletList(protect.organization)))
     .setCollapsible(true)
-    .setNumUncollapsibleWidgets(3);
+    .setNumUncollapsibleWidgets(1); // only the "estimate" note shows until it is opened
 }
