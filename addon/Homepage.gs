@@ -4,7 +4,7 @@
 //   -> Previous / Next, Page N -> "Scan N ticked emails" -> "Tick all on this page"
 //   -> "Already scanned" (with their tags; a tap opens the details, not the email).
 // "Open dashboard" is in the fixed footer, so it is always visible without scrolling.
-// The whole-mailbox scan is in the card menu (the three dots).
+// The card menu (the three dots) has the whole-mailbox scan and "Reset scan history".
 // This file builds the card and handles the clicks; ScannerCard.gs and Overview.gs build the pieces.
 
 function onHomepage(e) {
@@ -22,6 +22,8 @@ function buildHomepageCard(ticked, useSavedPage) {
   const rows = useSavedPage ? getPageRows() : loadPageRows();
   const menu = CardService.newCardAction().setText("Scan whole mailbox (for dashboard)")
     .setOnClickAction(CardService.newAction().setFunctionName("onMailboxScanClick"));
+  const reset = CardService.newCardAction().setText("Reset scan history")
+    .setOnClickAction(CardService.newAction().setFunctionName("onResetClick"));
   const count = rows.filter(function (row) { return ticked.indexOf(row.id) !== -1; }).length;
   return CardService.newCardBuilder()
     .addSection(topSection())
@@ -29,6 +31,7 @@ function buildHomepageCard(ticked, useSavedPage) {
     .addSection(actionsSection(count))
     .addSection(alreadyScannedSection(getScannedRows(), getChips(), getListState()))
     .addCardAction(menu)
+    .addCardAction(reset)
     .setFixedFooter(dashboardFooter())
     .build();
 }
@@ -213,6 +216,14 @@ function onScanRestClick(e) {
 function onOverviewClick(e) {
   return safely(function () {
     return CardService.newActionResponseBuilder().setNavigation(CardService.newNavigation().pushCard(buildOverviewCard())).build();
+  });
+}
+
+// Menu (three dots) -> "Reset scan history": every unread email shows again as not scanned.
+function onResetClick(e) {
+  return safely(function () {
+    resetScanHistory();
+    return redraw("Scan history cleared. Every unread email can be checked again.", [], false);
   });
 }
 

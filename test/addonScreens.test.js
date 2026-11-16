@@ -206,3 +206,14 @@ test("'Already scanned' rows show their tag and open the details with a tap", ()
   assert.strictEqual(last(last(row, "setOnClickAction"), "setFunctionName"), "onRowClick");
   assert.ok(allText(section).join(" ").includes("+2 more"));
 });
+
+test("'Reset scan history' forgets every scan, so all unread emails show again", () => {
+  props.SCAN_CHIPS = JSON.stringify({ m0: { verdict: "malicious", score: 95 } });
+  props.LAST_SCAN = JSON.stringify([{ id: "m0" }]);
+  props.SCAN_QUEUE = JSON.stringify({ ids: ["m1"] });
+  sandbox.PropertiesService = { getUserProperties: () => ({ getProperty: (k) => props[k] || null, setProperty: (k, v) => { props[k] = v; }, deleteProperty: (k) => { delete props[k]; } }) };
+  sandbox.resetScanHistory();
+  assert.deepStrictEqual(Object.keys(sandbox.getChips()), []);
+  assert.strictEqual(sandbox.getLastScan().length, 0);
+  assert.strictEqual(sandbox.getQueue().ids.length, 0);
+});
