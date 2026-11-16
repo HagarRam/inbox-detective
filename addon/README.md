@@ -34,6 +34,7 @@ One add-on with two screens:
 | `MailboxScan.gs` | Scans the mailbox in chunks of 50, headers only |
 | `Backend.gs` | Calls the backend (analyze, scan batch, dashboard token) |
 | `Cards.gs` | Builds the result card (verdict line, findings, primary button) |
+| `Scenario.gs` | Shows the "If you had clicked" section the server sends (facts, steps, protections) |
 | `Summary.gs` | One plain-English summary sentence, built from fixed phrases |
 | `Errors.gs` | Turns technical errors into short, friendly messages |
 

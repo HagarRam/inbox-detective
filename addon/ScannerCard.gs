@@ -109,10 +109,7 @@ function buildDetailsCard(scan) {
   const subject = CardService.newTextParagraph().setText("<b>" + escapeHtml(shorten(result.subject || "(no subject)", 80)) + "</b>");
   const verdict = verdictSection(result);
   if (result.verdict !== "malicious") verdict.addWidget(fullCheckHint(result)); // the red box already says "do not open"
-  return card
-    .addSection(CardService.newCardSection().addWidget(subject))
-    .addSection(verdict)
-    .addSection(findingsSection(result.findings))
-    .setFixedFooter(dashboardFooter())
-    .build();
+  card.addSection(CardService.newCardSection().addWidget(subject)).addSection(verdict).addSection(findingsSection(result.findings));
+  if (result.scenario) card.addSection(scenarioSection(result.scenario));
+  return card.setFixedFooter(dashboardFooter()).build();
 }

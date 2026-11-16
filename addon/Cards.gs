@@ -112,12 +112,12 @@ function dashboardFooter() {
 }
 
 function buildResultCard(result) {
-  return CardService.newCardBuilder()
+  const card = CardService.newCardBuilder()
     .setHeader(cardHeader("Analysis of this email"))
     .addSection(verdictSection(result))
-    .addSection(findingsSection(result.findings))
-    .setFixedFooter(dashboardFooter())
-    .build();
+    .addSection(findingsSection(result.findings));
+  if (result.scenario) card.addSection(scenarioSection(result.scenario)); // only for Suspicious / Malicious
+  return card.setFixedFooter(dashboardFooter()).build();
 }
 
 // "message" may be a technical error; the user sees only the friendly version.
