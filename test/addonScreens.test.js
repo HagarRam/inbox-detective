@@ -199,7 +199,7 @@ test("progress: 'Checked 2 of 30 unread emails', and the scanned ones go to 'Alr
 test("'Already scanned' rows show their tag and open the details with a tap", () => {
   const rows = [{ id: "m0", sender: "Bank", subject: "Urgent" }];
   const chips = { m0: { verdict: "malicious", score: 95 } };
-  const section = sandbox.alreadyScannedSection(rows, chips, { checked: 3 });
+  const section = sandbox.alreadyScannedSection(rows, chips, { scannedCount: 3 });
   assert.strictEqual(plain(last(section, "setHeader")), "Already scanned");
   const row = rowsOf(section)[0];
   assert.strictEqual(plain(last(row, "setBottomLabel")), "🔴 Dangerous · 95");
@@ -216,4 +216,19 @@ test("'Reset scan history' forgets every scan, so all unread emails show again",
   assert.deepStrictEqual(Object.keys(sandbox.getChips()), []);
   assert.strictEqual(sandbox.getLastScan().length, 0);
   assert.strictEqual(sandbox.getQueue().ids.length, 0);
+});
+
+test("'Already scanned' has its own search: it looks in the whole inbox, only scanned emails", () => {
+  props.SCAN_CHIPS = JSON.stringify({ p1: { verdict: "malicious", score: 95 }, p3: { verdict: "suspicious", score: 40 } });
+  props.LIST_STATE = JSON.stringify({ query: "", page: 0, next: "", scannedQuery: "from:paypal" });
+  const asked = [];
+  sandbox.listPage = (query) => { asked.push(query); return { ids: query.includes("from:paypal") ? ["p1", "p2", "p3"] : ["u1"], nextPageToken: "" }; };
+  sandbox.getRows = (ids) => ids.map((id) => ({ id, sender: "S", subject: "x", date: "" }));
+  sandbox.loadPageRows();
+  assert.ok(asked.includes("in:inbox from:paypal")); // read emails too, not only unread
+  assert.deepStrictEqual(JSON.parse(props.SCANNED_ROWS).map((r) => r.id), ["p1", "p3"]); // p2 was never scanned
+  const empty = sandbox.alreadyScannedSection([], {}, { scannedQuery: "from:nobody" });
+  assert.ok(allText(empty).join(" ").includes("No scanned emails match this search."));
+  const input = empty.calls.find((c) => c[0] === "addWidget")[1][0];
+  assert.strictEqual(last(input, "setFieldName"), "scanned_query");
 });
