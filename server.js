@@ -21,6 +21,7 @@ const crypto = require("crypto");
 const express = require("express");
 const { analyzeRaw } = require("./analyze");
 const { analyzeHeaders } = require("./analyzeHeaders");
+const { buildScenario } = require("./scenarios/buildScenario");
 const { dashboardRoutes } = require("./dashboard/routes");
 const { ID_PATTERN, toRecord, saveRecords } = require("./dashboard/scanStore");
 const { rateLimit } = require("./security/rateLimit");
@@ -58,6 +59,13 @@ function isPlainObject(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+// Add the "If you had clicked" scenario, only for Suspicious and Malicious emails.
+// mode is "full" (the opened email) or "headers-only" (before opening).
+function withScenario(result, mode) {
+  const flagged = result.verdict !== "likely safe";
+  return { ...result, scenario: flagged ? buildScenario(result.findings, mode) : null };
+}
+
 // Layer 1 (before the email is opened): body is { "headers": { "From": "...", ... }, "id": "<Gmail id>" }
 // Like /analyze, a valid id also adds the (headers-only) result to the dashboard.
 // Headers are small, so this address has its own 64 KB limit. It is registered
@@ -71,7 +79,7 @@ app.post("/analyze-headers", requireApiKey, express.json({ limit: "64kb" }), asy
     const result = await analyzeHeaders(headers);
     const id = req.body.id;
     if (typeof id === "string" && ID_PATTERN.test(id)) saveRecords([toRecord(id, result, false)]);
-    res.json(result);
+    res.json(withScenario(result, "headers-only"));
   } catch (err) {
     console.error("Headers analysis failed:", err.message);
     res.status(500).json({ error: "Could not analyze these headers" });
@@ -99,7 +107,7 @@ app.post("/analyze", requireApiKey, async (req, res) => {
   try {
     const result = await analyzeRaw(raw);
     if (typeof id === "string" && ID_PATTERN.test(id)) saveRecords([toRecord(id, result, true)]);
-    res.json(result);
+    res.json(withScenario(result, "full"));
   } catch (err) {
     // Do not send internal error details back to the caller.
     console.error("Analysis failed:", err.message);

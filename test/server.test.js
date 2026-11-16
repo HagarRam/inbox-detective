@@ -58,6 +58,17 @@ test("/analyze-headers refuses a body over 64 KB", async () => {
   assert.deepStrictEqual(await res.json(), { error: "Bad request" });
 });
 
+test("/analyze-headers returns a scenario for a flagged email", async () => {
+  const headers = {
+    From: '"Bank Security" <alerts@secure-bank-login.example>',
+    "Authentication-Results": "mx.google.com; spf=fail; dkim=none; dmarc=fail",
+  };
+  const res = await post("/analyze-headers", JSON.stringify({ headers }), "test-secret");
+  const body = await res.json();
+  assert.strictEqual(body.mode, "headers-only");
+  assert.strictEqual(body.scenario.estimateNote, "Estimate based on common patterns, not a fact.");
+});
+
 test("sends safe headers and hides that it runs Express", async () => {
   const res = await fetch(base + "/");
   assert.strictEqual(res.headers.get("x-content-type-options"), "nosniff");

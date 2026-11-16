@@ -19,6 +19,7 @@ different-looking emails that come from the **same attacker infrastructure** int
 | **Network intel** | For every domain in the email (sender, Reply-To, Return-Path, links): IP, hosting network (ASN), name servers, mail servers, registrar, registration date, TLS certificates. A domain registered days ago raises the score. |
 | **Campaigns** | Domains that share **rare** infrastructure (same private name server, IP, certificate, registration day) are grouped. A "bank" email and a "PayPal" email on the same server become one campaign. |
 | **Dashboard** | Built only from YOUR mailbox: every email you open or check is added right away, and *Scan mailbox* adds the rest (headers only, 50 per click, new emails first). Opened from the add-on with a one-time link: threats over time, scam types, campaign graph, who pretends to be whom, sender drift, riskiest senders, protection advice. |
+| **If you had clicked** | For every Suspicious or Malicious email: the facts we found, a likely story in 3-4 steps mapped to MITRE ATT&CK, and protections for you, your IT admin and your organization. Always labeled *"Estimate based on common patterns, not a fact."* |
 
 ## Architecture
 
@@ -52,6 +53,7 @@ different-looking emails that come from the **same attacker infrastructure** int
 | `intel/` | Passive domain lookups behind a provider interface (live / replay), with the SSRF guard. |
 | `campaign/` | Pivots, rarity weights, clustering, impersonation map, sender drift. |
 | `dashboard/` | Metadata store, one-time tokens, dashboard data and page. |
+| `scenarios/` | "If you had clicked": the fixed stories (`stories.js`) and the pure builder (`buildScenario.js`). |
 | `security/` | Rate limiting, safe headers, error handler. |
 | `fixtures/intel/` | Saved intel for replay mode. |
 | `samples/` | 11 sample emails (9 phishing, 2 legitimate) for tests and `npm run demo`. |
@@ -172,6 +174,8 @@ Without Gmail: `npm run seed-dashboard` fills the dashboard from `samples/` (hea
 
 ## Limitations and honest trade-offs
 
+- **Before opening, headers only.** The pre-open scan never sees links, attachments or the text, so a phish with clean authentication can pass it. It never says "safe" (it says *"No strong sender red flags"*), and the full check runs when you open the email.
+- **Scenarios are estimates.** The facts are real (taken only from the findings), but the steps are a likely story based on common patterns, not what this attacker will do. There are no statistics. MITRE ATT&CK IDs and names were checked on attack.mitre.org (November 2026); T1656 "Impersonation" could not be checked and is not used.
 - **The score is an estimate.** Fixed weights chosen by hand, not trained on data. A clever phish with clean authentication and no links (e.g. a plain "call me" message) can score low. A legitimate bulk mailer can collect a few points.
 - **Campaigns and drift are estimates** based on shared infrastructure. Shared hosting can create false links. Rarity weighting reduces this, but does not remove it.
 - **Demo intel is partly synthetic** (fictional `.example` domains). Live mode works on real domains, but is slower (~6 s per email, crt.sh is often slow), so replay is the default.
