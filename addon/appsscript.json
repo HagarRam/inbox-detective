@@ -18,7 +18,7 @@
     "https://www.googleapis.com/auth/script.external_request"
   ],
   "urlFetchWhitelist": [
-    "https://REPLACE-WITH-YOUR-BACKEND-HOST/",
+    "https://debating-plus-sincere.ngrok-free.dev/",
     "https://gmail.googleapis.com/"
   ],
   "addOns": {
