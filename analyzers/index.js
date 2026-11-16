@@ -1,5 +1,5 @@
 // analyzers/index.js
-// The list of all checks. analyze.js runs every one of them.
+// The lists of checks. analyze.js runs them.
 // To add a new check: write it in its own file and add it here.
 
 const { checkAuthentication } = require("./authentication");
@@ -21,4 +21,13 @@ const ALL_CHECKS = [
   checkContent,
 ];
 
-module.exports = { ALL_CHECKS };
+// The checks that need only the sender headers (no body, no links, no attachments).
+// Used by the headers-only scan BEFORE the email is opened.
+const HEADER_CHECKS = [
+  checkAuthentication,
+  checkReplyTo,
+  checkReturnPath,
+  checkDisplayNameSpoof,
+];
+
+module.exports = { ALL_CHECKS, HEADER_CHECKS };
