@@ -165,7 +165,7 @@ The `.example` domains in the samples do not exist, so their replay files are **
 1. **Open a phishing email** in the test account. The card shows 100/100 MALICIOUS with reasons like "Link text does not match its real destination: shows mybank.com but goes to login-update.example".
 2. **Open a real email** (e.g. from Google). It is likely safe, and the card shows the good signal "Sender is authenticated".
 3. **Go back to the inbox (no email open).** Tick a few emails in the add-on list and click *Scan selected emails*. You get the reasoning without opening anything.
-4. **Click *Scan mailbox*, then *Open dashboard*.** Show the campaign graph: the "bank" and "PayPal" emails are one campaign (same IP, name servers, certificate, registration day). The HR and "Google Docs" emails are linked by a rare mail server even though both sit on Cloudflare, and the Cloudflare links count only +0.1 / +0.3.
+4. **In the add-on menu (⋮) choose *Scan whole mailbox (for dashboard)*, then click *Open dashboard*.** Show the campaign graph: the "bank" and "PayPal" emails are one campaign (same IP, name servers, certificate, registration day). The HR and "Google Docs" emails are linked by a rare mail server even though both sit on Cloudflare, and the Cloudflare links count only +0.1 / +0.3.
 5. **Sender drift:** "GitHub" first from github.com (Microsoft network), then from `github-account-notice.example` on a different network.
 
 **Demo mailbox:** the test inbox is filled with 50 fictional emails (about 30 phishing in 4 campaigns, 20 normal) by a separate Apps Script project: see [seeder/README.md](seeder/README.md). It uses Gmail *import*, so nothing is sent to anyone, and the add-on never needs the "insert emails" permission.
