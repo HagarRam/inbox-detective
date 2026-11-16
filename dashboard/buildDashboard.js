@@ -29,24 +29,42 @@ function buildTimeline(records) {
   return Object.values(days).sort((a, b) => a.day.localeCompare(b.day));
 }
 
-// Sender domains with the highest score first.
+// Sender domains with the highest score first. "verdict" is the verdict of the
+// sender's highest-scoring email (already computed by score.js; nothing new here).
 function buildRiskiestSenders(riskyRecords) {
   const byDomain = new Map();
   for (const r of riskyRecords) {
     const domain = r.from ? r.from.domain : "unknown";
-    const entry = byDomain.get(domain) || { domain, emails: 0, maxScore: 0, name: r.from ? r.from.name : "" };
+    const entry = byDomain.get(domain) || { domain, emails: 0, maxScore: -1, name: r.from ? r.from.name : "" };
     entry.emails++;
-    entry.maxScore = Math.max(entry.maxScore, r.score);
+    if (r.score > entry.maxScore) {
+      entry.maxScore = r.score;
+      entry.verdict = r.verdict;
+    }
     byDomain.set(domain, entry);
   }
   return [...byDomain.values()].sort((a, b) => b.maxScore - a.maxScore || b.emails - a.emails).slice(0, 10);
 }
 
+// The worst verdict among the emails that use each domain, e.g. { "x.example": "malicious" }.
+function worstVerdictByDomain(records) {
+  const rank = { "likely safe": 0, suspicious: 1, malicious: 2 };
+  const worst = {};
+  for (const r of records) {
+    for (const item of r.intel || []) {
+      const old = worst[item.domain];
+      if (!old || rank[r.verdict] > rank[old]) worst[item.domain] = r.verdict;
+    }
+  }
+  return worst;
+}
+
 // Graph for vis-network: domains are dots, strong links are lines.
-function buildGraph(campaigns, links) {
+function buildGraph(campaigns, links, records) {
+  const verdicts = worstVerdictByDomain(records);
   const nodes = [];
   for (const c of campaigns) {
-    for (const domain of c.domains) nodes.push({ id: domain, label: domain, group: c.id });
+    for (const domain of c.domains) nodes.push({ id: domain, label: domain, group: c.id, verdict: verdicts[domain] || "suspicious" });
   }
   const inGraph = new Set(nodes.map((n) => n.id));
   const edges = [];
@@ -66,7 +84,7 @@ function buildDashboard(records) {
     timeline: buildTimeline(records),
     scamTypes: countBy(risky, scamType),
     campaigns,
-    graph: buildGraph(campaigns, links),
+    graph: buildGraph(campaigns, links, risky),
     impersonation: buildImpersonationMap(risky),
     senderDrift: findSenderDrift(records),
     riskiestSenders: buildRiskiestSenders(risky),

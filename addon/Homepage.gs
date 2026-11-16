@@ -1,11 +1,12 @@
 // Homepage.gs
 // The add-on "home screen": shown when NO email is open (the user is in the list).
-// It lists the newest emails (sender + subject only) with checkboxes.
-// The user ticks some and clicks "Scan selected emails" -> a card with the
-// score, verdict and reasons for each one. No email is ever opened.
+// A short welcome, three clear actions, and one "how it works" line:
+//   1. tick emails and scan them WITHOUT opening them
+//   2. scan the whole mailbox (headers only) for the dashboard
+//   3. open the dashboard (the one primary button, at the bottom)
 
-// In the results card, show only the strongest reasons per email, so it stays short.
-const FINDINGS_PER_EMAIL = 5;
+// In the scan results, show only the strongest reasons per email, so it stays short.
+const FINDINGS_PER_EMAIL = 3;
 
 function onHomepage(e) {
   try {
@@ -17,38 +18,40 @@ function onHomepage(e) {
 }
 
 function buildHomepageCard(emails) {
-  const section = CardService.newCardSection().setHeader("Check emails without opening them");
-  if (emails.length === 0) {
-    section.addWidget(CardService.newTextParagraph().setText("Your inbox is empty."));
-  } else {
-    section.addWidget(buildEmailCheckboxes(emails));
-    section.addWidget(
-      CardService.newTextButton()
-        .setText("Scan selected emails")
-        .setOnClickAction(CardService.newAction().setFunctionName("onScanClick"))
-    );
-  }
+  const welcome = CardService.newCardSection().addWidget(CardService.newTextParagraph().setText(
+    "Check emails <b>before</b> you open them, and see who is targeting your mailbox.<br>" +
+    "<i>How it works: emails are read as text only. Links and attachments are never opened. Scores are estimates.</i>"
+  ));
   return CardService.newCardBuilder()
-    .setHeader(CardService.newCardHeader().setTitle("Inbox Detective"))
-    .addSection(section)
-    .addSection(buildDashboardSection())
+    .setHeader(cardHeader("Is someone targeting you?"))
+    .addSection(welcome)
+    .addSection(checkEmailsSection(emails))
+    .addSection(mailboxSection())
+    .setFixedFooter(dashboardFooter())
     .build();
 }
 
-// Second part of the home screen: scan the whole mailbox, then open the dashboard.
-function buildDashboardSection() {
+// Action 1: the newest emails with checkboxes, and a scan button.
+function checkEmailsSection(emails) {
+  const section = CardService.newCardSection().setHeader("1. Check emails without opening them");
+  if (emails.length === 0) {
+    return section.addWidget(CardService.newTextParagraph().setText("Your inbox is empty."));
+  }
+  const scan = CardService.newTextButton()
+    .setText("Scan selected")
+    .setOnClickAction(CardService.newAction().setFunctionName("onScanClick"));
+  return section.addWidget(buildEmailCheckboxes(emails)).addWidget(scan);
+}
+
+// Action 2: scan the whole mailbox for the dashboard.
+function mailboxSection() {
   const explain = CardService.newTextParagraph().setText(
-    "Scan your whole mailbox (headers only, " + CHUNK_SIZE + " emails per click) and see campaigns, trends and advice."
+    "Headers only, " + CHUNK_SIZE + " emails per click. Then open the dashboard to see campaigns, trends and advice."
   );
   const scan = CardService.newTextButton()
     .setText("Scan mailbox (next " + CHUNK_SIZE + ")")
     .setOnClickAction(CardService.newAction().setFunctionName("onMailboxScanClick"));
-  const open = CardService.newTextButton()
-    .setText("Open dashboard")
-    .setOnClickAction(CardService.newAction().setFunctionName("onOpenDashboardClick"));
-  return CardService.newCardSection().setHeader("Mailbox dashboard")
-    .addWidget(explain)
-    .addWidget(CardService.newButtonSet().addButton(scan).addButton(open));
+  return CardService.newCardSection().setHeader("2. Scan your whole mailbox").addWidget(explain).addWidget(scan);
 }
 
 function onMailboxScanClick(e) {
@@ -59,18 +62,18 @@ function onMailboxScanClick(e) {
     return notify(text);
   } catch (err) {
     console.error(err);
-    return notify("Scan failed: " + err.message);
+    return notify(friendlyError(err.message));
   }
 }
 
-// Ask the server for a one-time link and open it in a new browser tab.
+// Action 3: ask the server for a one-time link and open it in a new browser tab.
 function onOpenDashboardClick(e) {
   try {
     const link = CardService.newOpenLink().setUrl(getDashboardUrl());
     return CardService.newActionResponseBuilder().setOpenLink(link).build();
   } catch (err) {
     console.error(err);
-    return notify("Could not open the dashboard: " + err.message);
+    return notify(friendlyError(err.message));
   }
 }
 
@@ -79,14 +82,14 @@ function buildEmailCheckboxes(emails) {
   const boxes = CardService.newSelectionInput()
     .setType(CardService.SelectionInputType.CHECK_BOX)
     .setFieldName("emailIds")
-    .setTitle("Tick the emails to scan (max " + EMAILS_PER_CLICK + ")");
+    .setTitle("Tick up to " + EMAILS_PER_CLICK + " emails");
   for (const email of emails) {
     boxes.addItem(shorten(email.from + ": " + email.subject, 70), email.id, false);
   }
   return boxes;
 }
 
-// Runs when the button is clicked: scan the ticked emails, then show the results.
+// Runs when "Scan selected" is clicked: scan the ticked emails, then show the results.
 function onScanClick(e) {
   const ids = getTickedIds(e);
   if (ids.length === 0) {
@@ -109,27 +112,27 @@ function getTickedIds(e) {
   return inputs.emailIds.stringInputs.value;
 }
 
-// One section per scanned email: subject, score + verdict, and the reasons.
+// One section per scanned email, in the same visual language as the result card.
 function buildScanResultsCard(scans) {
-  const card = CardService.newCardBuilder()
-    .setHeader(CardService.newCardHeader().setTitle("Scan results"));
+  const card = CardService.newCardBuilder().setHeader(cardHeader("Scan results (emails stay unopened)"));
   for (const scan of scans) {
     card.addSection(buildOneScanSection(scan));
   }
-  return card.build();
+  return card.setFixedFooter(dashboardFooter()).build();
 }
 
 function buildOneScanSection(scan) {
   const section = CardService.newCardSection();
   if (scan.error) {
     section.setHeader("Could not scan this email");
-    return section.addWidget(CardService.newTextParagraph().setText(escapeHtml(scan.error)));
+    return section.addWidget(CardService.newTextParagraph().setText("⚠ " + escapeHtml(friendlyError(scan.error))));
   }
   const result = scan.result;
   section.setHeader(escapeHtml(shorten(result.subject || "(no subject)", 60)));
-  section.addWidget(buildScoreWidget(result));
+  section.addWidget(verdictWidget(result));
+  section.addWidget(CardService.newTextParagraph().setText(escapeHtml(summarySentence(result))));
   for (let i = 0; i < result.findings.length && i < FINDINGS_PER_EMAIL; i++) {
-    section.addWidget(buildFindingWidget(result.findings[i]));
+    section.addWidget(findingRow(result.findings[i]));
   }
   return section;
 }
@@ -139,10 +142,4 @@ function notify(text) {
   return CardService.newActionResponseBuilder()
     .setNotification(CardService.newNotification().setText(text))
     .build();
-}
-
-// Cut long text and add "..." so the card stays readable.
-function shorten(text, max) {
-  if (text.length <= max) return text;
-  return text.slice(0, max - 3) + "...";
 }
