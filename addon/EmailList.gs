@@ -3,6 +3,7 @@
 // For each email we read only From, Subject, the date and "unread". Never the body.
 
 const PAGE_SIZE = 25;
+const MAX_LISTED = 200; // the newest 200 unread emails (Gmail allows up to 500 in one call)
 
 // The Gmail search for the list: unread inbox emails, plus the user's own search text,
 // e.g. "in:inbox is:unread from:paypal". Opened emails do not need a check before opening.

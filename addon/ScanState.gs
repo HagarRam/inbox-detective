@@ -20,10 +20,9 @@ function saveJson(key, value) {
   PropertiesService.getUserProperties().setProperty(key, JSON.stringify(value));
 }
 
-// { query, tokens, page, next }: tokens[page] is Gmail's token for the shown page
-// ("" for page 1), next is the token for the page after it ("" = this is the last page).
+// { query, page, next }: page 0 = the first page; next = "" when this is the last page.
 function newListState(query) {
-  return { query: query, tokens: [""], page: 0, next: "" };
+  return { query: query, page: 0, next: "" };
 }
 
 function getListState() {

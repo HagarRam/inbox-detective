@@ -47,15 +47,34 @@ function looks(button) {
   return [plain(last(button, "setText")), last(button, "setTextButtonStyle"), last(button, "setBackgroundColor"), Boolean(last(button, "setDisabled"))];
 }
 
-test("(a) the list leaves out emails that were already scanned", () => {
-  props.LIST_STATE = JSON.stringify({ query: "", tokens: [""], page: 0, next: "" });
-  props.SCAN_CHIPS = JSON.stringify({ m1: { verdict: "malicious", score: 95 } });
-  let askedFor = [];
-  sandbox.listPage = () => ({ ids: ["m1", "m2", "m3"], nextPageToken: "" });
-  sandbox.getRows = (ids) => { askedFor = ids; return ids.map((id) => ({ id, sender: "s", subject: "x", date: "" })); };
-  const rows = sandbox.loadPageRows();
-  assert.deepStrictEqual(Array.from(askedFor), ["m2", "m3"]);
-  assert.deepStrictEqual(rows.map((r) => r.id), ["m2", "m3"]);
+test("(a) the list works like a queue: scanned emails leave, the next ones move up", () => {
+  const all = [];
+  for (let i = 0; i < 30; i++) all.push("m" + i);
+  props.SCAN_CHIPS = JSON.stringify({ m0: { verdict: "malicious", score: 95 }, m1: { verdict: "likely safe", score: 0 } });
+  sandbox.listPage = () => ({ ids: all, nextPageToken: "" });
+  sandbox.getRows = (ids) => ids.map((id) => ({ id, sender: "s", subject: "x", date: "" }));
+  props.LIST_STATE = JSON.stringify({ query: "", page: 0, next: "" });
+  const page1 = sandbox.loadPageRows();
+  assert.strictEqual(page1.length, 25); // still 25: m25 and m26 moved up
+  assert.strictEqual(page1[0].id, "m2");
+  assert.strictEqual(JSON.parse(props.LIST_STATE).next, "more");
+  props.LIST_STATE = JSON.stringify({ query: "", page: 1, next: "" });
+  const page2 = sandbox.loadPageRows();
+  assert.deepStrictEqual(page2.map((r) => r.id), ["m27", "m28", "m29"]);
+  assert.strictEqual(JSON.parse(props.LIST_STATE).next, ""); // the last page
+});
+
+test("an opened email is matched to its pre-open result by the message's own id", () => {
+  props.SCAN_CHIPS = JSON.stringify({ abc123: { verdict: "malicious", score: 95 } });
+  sandbox.console = { log() {}, error() {} };
+  sandbox.GmailApp = {
+    setCurrentMessageAccessToken() {},
+    getMessageById: () => ({ getId: () => "abc123", getRawContent: () => "raw" }), // the event id looks different
+  };
+  sandbox.callBackend = () => ({ verdict: "malicious", score: 100, subject: "Hi", from: { address: "a@b.example" }, findings: [], scenario: null });
+  const card = sandbox.onGmailMessageOpen({ gmail: { messageId: "msg-f:1784", accessToken: "t" } });
+  const first = card.calls.find((c) => c[0] === "addSection")[1][0];
+  assert.ok(plain(last(first.calls[0][1][0], "setText")).includes("⛔ WARNING: you were warned before opening this email"));
 });
 
 test("(b) the alert counts: zero counts are left out, and fine emails are not ignored", () => {
