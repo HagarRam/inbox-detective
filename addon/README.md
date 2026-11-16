@@ -6,7 +6,7 @@ One add-on with two screens:
   `POST /analyze` (with the `X-API-Key` header) and shows the score, verdict and findings.
 - **No email is open (home screen):** a search field (Enter runs it), the **unread** emails that
   were **not scanned yet** (25 per page, *Previous / Next*, a checkbox each; ticking updates the
-  button to *Scan N ticked emails*), *Tick all on this page*, and a purple *Open dashboard*.
+  button to *Scan N ticked emails*), *Tick all on this page*, and a purple *Open dashboard* fixed at the bottom of the panel.
   The scan fetches only the **sender headers** (`format=metadata`), sends them to
   `POST /analyze-headers`, 5 per click (the rest stay ticked). Scanned emails leave the list and
   an alert with a red *View results* button opens the **Scan overview**: counts, checked / not

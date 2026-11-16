@@ -1,7 +1,8 @@
 // Homepage.gs
 // The add-on "home screen": shown when NO email is open. Top to bottom:
 //   search -> alert after a scan ("View results") -> "Unread emails" (not scanned yet, tick them)
-//   -> Previous / Next, Page N -> "Scan N ticked emails" -> "Tick all on this page" -> "Open dashboard".
+//   -> Previous / Next, Page N -> "Scan N ticked emails" -> "Tick all on this page".
+// "Open dashboard" is in the fixed footer, so it is always visible without scrolling.
 // The whole-mailbox scan is in the card menu (the three dots).
 // This file builds the card and handles the clicks; ScannerCard.gs and Overview.gs build the pieces.
 
@@ -26,6 +27,7 @@ function buildHomepageCard(ticked, useSavedPage) {
     .addSection(listSection(rows, ticked))
     .addSection(actionsSection(count))
     .addCardAction(menu)
+    .setFixedFooter(dashboardFooter())
     .build();
 }
 
@@ -57,13 +59,11 @@ function listSection(rows, ticked) {
   return section;
 }
 
-// Each button in its own row: Scan, Tick all, a divider, Open dashboard.
+// Each button in its own row: Scan, then Tick all under it.
 function actionsSection(tickedCount) {
   return CardService.newCardSection()
     .addWidget(scanButton(tickedCount))
-    .addWidget(tickAllButton())
-    .addWidget(CardService.newDivider())
-    .addWidget(dashboardButton());
+    .addWidget(tickAllButton());
 }
 
 function onMailboxScanClick(e) {
