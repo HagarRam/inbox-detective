@@ -69,15 +69,28 @@ function countResults(results) {
   return counts;
 }
 
-// "⛔ 2 dangerous, 1 suspicious emails need attention" (a count of 0 is left out),
-// or "4 emails checked, no strong red flags".
+// "1 email" / "3 emails"
+function emailsText(count) {
+  return count + (count === 1 ? " email" : " emails");
+}
+
+// "⛔ 2 dangerous, 1 suspicious need attention" (a count of 0 is left out),
+// or, when nothing was flagged, "2 emails checked: no strong red flags".
 function alertText(results) {
   const counts = countResults(results);
   const parts = [];
   if (counts.malicious > 0) parts.push(counts.malicious + " dangerous");
   if (counts.suspicious > 0) parts.push(counts.suspicious + " suspicious");
-  if (parts.length === 0) return results.length + (results.length === 1 ? " email" : " emails") + " checked, no strong red flags";
-  return "⛔ " + parts.join(", ") + " emails need attention";
+  if (parts.length === 0) return emailsText(results.length) + " checked: no strong red flags";
+  return "⛔ " + parts.join(", ") + (counts.malicious + counts.suspicious === 1 ? " needs" : " need") + " attention";
+}
+
+// The emails that came out fine are not ignored: "⚪ 1 email: no strong red flags".
+// (Headers only, so we never say "safe".) "" when there are none, or nothing was flagged.
+function cleanText(results) {
+  const counts = countResults(results);
+  if (counts.clean === 0 || counts.malicious + counts.suspicious === 0) return "";
+  return "⚪ " + emailsText(counts.clean) + ": no strong red flags";
 }
 
 function viewResultsButton() {
@@ -87,12 +100,11 @@ function viewResultsButton() {
 // The alert block, or [] when nothing was scanned yet.
 function alertWidgets(results) {
   if (results.length === 0) return [];
-  const checked = results.length + (results.length === 1 ? " email checked" : " emails checked");
-  return [
-    textLine("<b>" + ltr(alertText(results)) + "</b>"),
-    textLine('<font color="' + GREY + '">' + ltr(checked) + "</font>"),
-    viewResultsButton(),
-  ];
+  const widgets = [textLine("<b>" + ltr(alertText(results)) + "</b>")];
+  if (cleanText(results)) widgets.push(textLine(ltr(cleanText(results))));
+  widgets.push(textLine('<font color="' + GREY + '">' + ltr(emailsText(results.length) + " checked") + "</font>"));
+  widgets.push(viewResultsButton());
+  return widgets;
 }
 
 // ---- The list ----

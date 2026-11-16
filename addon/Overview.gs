@@ -22,18 +22,30 @@ function countsSection(results) {
     .addWidget(textLine('<font color="' + GREY + '">' + ltr(CHECKED_TEXT) + "<br>" + ltr(NOT_CHECKED_TEXT) + "</font>"));
 }
 
-// Dangerous and Suspicious emails, highest score first. A tap opens the details card.
+// One scanned email: sender, bold subject, its tag. A tap opens the details card.
+function resultRow(r) {
+  return CardService.newDecoratedText()
+    .setTopLabel(escapeHtml(r.sender))
+    .setText("<b>" + escapeHtml(r.subject) + "</b>")
+    .setBottomLabel(ltr(chipText(r)))
+    .setWrapText(false)
+    .setOnClickAction(rowClickAction(r.id));
+}
+
+// "Needs your attention": Dangerous and Suspicious, highest score first.
 function attentionSection(results) {
   const flagged = results.filter(function (r) { return r.verdict !== "likely safe"; });
   flagged.sort(function (a, b) { return b.score - a.score; });
   const section = CardService.newCardSection().setHeader(ltr("Needs your attention"));
-  for (const r of flagged) {
-    section.addWidget(CardService.newDecoratedText()
-      .setTopLabel(escapeHtml(r.sender))
-      .setText("<b>" + escapeHtml(r.subject) + "</b>")
-      .setBottomLabel(ltr(chipText(r)))
-      .setWrapText(false)
-      .setOnClickAction(rowClickAction(r.id)));
+  for (const r of flagged) section.addWidget(resultRow(r));
+  return section;
+}
+
+// "No strong red flags": the emails that came out fine are listed too, not ignored.
+function cleanSection(results) {
+  const section = CardService.newCardSection().setHeader(ltr("No strong red flags"));
+  for (const r of results) {
+    if (r.verdict === "likely safe") section.addWidget(resultRow(r));
   }
   return section;
 }
@@ -61,6 +73,8 @@ function buildOverviewCard() {
   const results = getLastScan();
   const card = CardService.newCardBuilder().setHeader(CardService.newCardHeader().setTitle(ltr("Scan overview")));
   card.addSection(countsSection(results));
-  if (countResults(results).malicious + countResults(results).suspicious > 0) card.addSection(attentionSection(results));
+  const counts = countResults(results);
+  if (counts.malicious + counts.suspicious > 0) card.addSection(attentionSection(results));
+  if (counts.clean > 0) card.addSection(cleanSection(results));
   return card.addSection(nextStepsSection()).build();
 }
