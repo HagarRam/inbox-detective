@@ -41,6 +41,23 @@ test("a strange id is not saved to the dashboard, but the email is still analyze
   assert.strictEqual(readAll().length, before);
 });
 
+test("/analyze-headers needs the API key", async () => {
+  const res = await post("/analyze-headers", JSON.stringify({ headers: { From: "a@b.com" } }), "wrong");
+  assert.strictEqual(res.status, 401);
+});
+
+test("/analyze-headers refuses a body that is not { headers: {...} }", async () => {
+  const res = await post("/analyze-headers", JSON.stringify({ headers: "From: a@b.com" }), "test-secret");
+  assert.strictEqual(res.status, 400);
+});
+
+test("/analyze-headers refuses a body over 64 KB", async () => {
+  const big = JSON.stringify({ headers: { Subject: "x".repeat(70 * 1024) } });
+  const res = await post("/analyze-headers", big, "test-secret");
+  assert.strictEqual(res.status, 413); // 413 = "too large"
+  assert.deepStrictEqual(await res.json(), { error: "Bad request" });
+});
+
 test("sends safe headers and hides that it runs Express", async () => {
   const res = await fetch(base + "/");
   assert.strictEqual(res.headers.get("x-content-type-options"), "nosniff");

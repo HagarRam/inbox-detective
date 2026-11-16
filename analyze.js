@@ -9,10 +9,11 @@ const { checkNewDomains, checkPrivateIps } = require("./analyzers/intelChecks");
 const { enrichEmail } = require("./intel/enrichEmail");
 const { scoreFindings } = require("./score");
 
-// Runs every check on an already parsed email and its intel. No network, easy to test.
-function analyzeParsed(email, intel = []) {
+// Runs the checks on an already parsed email and its intel. No network, easy to test.
+// "checks" is ALL_CHECKS for a full email, or HEADER_CHECKS for headers only.
+function analyzeParsed(email, intel = [], checks = ALL_CHECKS) {
   const findings = [];
-  for (const check of ALL_CHECKS) {
+  for (const check of checks) {
     for (const f of check(email)) {
       findings.push(f);
     }

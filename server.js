@@ -3,9 +3,11 @@
 // back a score, a verdict and the findings.
 //
 // Security in this file:
-// - Every /analyze request must carry the shared secret (X-API-Key header).
+// - Every request (/analyze, /analyze-headers, /scan-batch...) must carry the
+//   shared secret (X-API-Key header).
 //   The secret lives in the .env file / environment, never in the code.
-// - The request body has a size limit, so nobody can send a huge payload.
+// - The request body has a size limit (5 MB, or 64 KB for headers only),
+//   so nobody can send a huge payload.
 // - Rate limiting: at most 120 requests per minute per client.
 // - Safe headers on every answer, and errors never reveal internal details.
 // - The server listens only on 127.0.0.1: it is reachable from outside ONLY
@@ -18,6 +20,7 @@ require("dotenv").config();
 const crypto = require("crypto");
 const express = require("express");
 const { analyzeRaw } = require("./analyze");
+const { analyzeHeaders } = require("./analyzeHeaders");
 const { dashboardRoutes } = require("./dashboard/routes");
 const { ID_PATTERN, toRecord, saveRecords } = require("./dashboard/scanStore");
 const { rateLimit } = require("./security/rateLimit");
@@ -27,9 +30,6 @@ const app = express();
 app.disable("x-powered-by"); // do not announce that we run Express
 app.use(securityHeaders);
 app.use(rateLimit(120));
-
-// Only accept JSON, and at most 5 MB (an email with small attachments).
-app.use(express.json({ limit: "5mb" }));
 
 // Compare two secrets in constant time, so an attacker cannot guess the
 // secret letter by letter by measuring how long the answer takes.
@@ -52,6 +52,30 @@ function requireApiKey(req, res, next) {
   }
   next();
 }
+
+// { "From": "..." } is a plain object; null, a list or a string is not.
+function isPlainObject(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+// Layer 1 (before the email is opened): body is { "headers": { "From": "...", ... } }
+// Headers are small, so this address has its own 64 KB limit. It is registered
+// BEFORE the 5 MB parser below, so the small limit is the one that counts here.
+app.post("/analyze-headers", requireApiKey, express.json({ limit: "64kb" }), async (req, res) => {
+  const headers = req.body && req.body.headers;
+  if (!isPlainObject(headers)) {
+    return res.status(400).json({ error: "Body must be JSON: { headers: { name: value } }" });
+  }
+  try {
+    res.json(await analyzeHeaders(headers));
+  } catch (err) {
+    console.error("Headers analysis failed:", err.message);
+    res.status(500).json({ error: "Could not analyze these headers" });
+  }
+});
+
+// Every other address: only accept JSON, and at most 5 MB (an email with small attachments).
+app.use(express.json({ limit: "5mb" }));
 
 // Health check, so we can see the server is up. Reveals nothing.
 app.get("/", (req, res) => {
