@@ -50,9 +50,22 @@ test("only rows that were really ticked are scanned", () => {
 });
 
 test("the search text is escaped before it is shown", () => {
-  const title = plain(sandbox.listTitle({ query: "<b>x</b>", page: 0 }));
-  assert.strictEqual(title, 'Results for "&lt;b&gt;x&lt;/b&gt;"');
-  assert.strictEqual(plain(sandbox.listTitle({ query: "", page: 1 })), "Latest inbox emails (page 2)");
+  assert.strictEqual(plain(sandbox.listTitle({ query: "<b>x</b>", showRead: false })), 'Unread inbox emails matching "&lt;b&gt;x&lt;/b&gt;"');
+  assert.strictEqual(plain(sandbox.listTitle({ query: "", showRead: true })), "Inbox emails");
+});
+
+test("the list shows unread inbox emails only, unless 'Show read emails too' is on", () => {
+  assert.strictEqual(sandbox.listQuery({ query: "", showRead: false }), "in:inbox is:unread");
+  assert.strictEqual(sandbox.listQuery({ query: "from:paypal", showRead: false }), "in:inbox is:unread from:paypal");
+  assert.strictEqual(sandbox.listQuery({ query: "from:paypal", showRead: true }), "in:inbox from:paypal");
+});
+
+test("the Scan overview counts this page: dangerous, suspicious, no red flags, not scanned", () => {
+  const rows = [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }];
+  const chips = { a: { verdict: "malicious" }, b: { verdict: "suspicious" }, c: { verdict: "likely safe" } };
+  const counts = sandbox.countRows(rows, chips);
+  assert.deepStrictEqual(Array.from(counts.unscanned), ["d"]);
+  assert.strictEqual(sandbox.summaryText(counts), "🔴 1 dangerous · 🟠 1 suspicious · ⚪ 1 no strong sender red flags");
 });
 
 test("the warning box: red for Malicious, orange for Suspicious, none otherwise", () => {

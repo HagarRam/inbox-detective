@@ -1,14 +1,14 @@
 // Homepage.gs
-// The add-on "home screen": shown when NO email is open (the user is in the list).
-// A short welcome, three clear actions, and one "how it works" line:
-//   1. find emails (inbox or search), tick them and scan them WITHOUT opening them
-//   2. scan the whole mailbox (headers only) for the dashboard
-//   3. open the dashboard (the one primary button, at the bottom)
-// This file builds the card and handles the clicks; ScannerCard.gs builds the rows.
+// The add-on "home screen": shown when NO email is open.
+//   Step 1: find emails (unread inbox emails, or a Gmail search)
+//   Step 2: tick the emails to check
+//   Step 3: scan them WITHOUT opening them; the Scan overview card opens on top
+//   Dashboard (whole mailbox): a separate section at the bottom
+// This file builds the card and handles the clicks; ScannerCard.gs and Overview.gs build the pieces.
 
 function onHomepage(e) {
   try {
-    saveListState({ query: "", tokens: [""], page: 0, next: "" }); // always start at the inbox, page 1
+    saveListState(newListState("", false)); // always start at page 1, unread only
     return buildHomepageCard(false);
   } catch (err) {
     console.error(err);
@@ -16,51 +16,32 @@ function onHomepage(e) {
   }
 }
 
-// tickUnread = true when "Select all unread" was clicked.
-function buildHomepageCard(tickUnread) {
-  const welcome = CardService.newCardSection().addWidget(CardService.newTextParagraph().setText(
-    ltr("Check emails <b>before</b> you open them, and see who is targeting your mailbox.") + "<br>" +
-    "<i>" + ltr("How it works: before opening, only the sender headers are read. Links and attachments are checked when you open an email. Scores are estimates.") + "</i>"
-  ));
+// tickAll = true when "Tick all (this page)" was clicked.
+function buildHomepageCard(tickAll) {
+  const state = getListState();
+  const page = listPage(listQuery(state), state.tokens[state.page], PAGE_SIZE);
+  state.next = page.nextPageToken; // remembered for the "Next" button
+  saveListState(state);
+  const rows = getRows(page.ids);
+  savePageRows(rows); // the Scan overview shows this same page
+  const welcome = textLine(ltr("Check emails <b>before</b> you open them. Only the sender headers are read; links and attachments are checked when you open an email. Scores are estimates."));
   return CardService.newCardBuilder()
     .setHeader(cardHeader("Is someone targeting you?"))
-    .addSection(welcome)
-    .addSection(checkEmailsSection(tickUnread))
-    .addSection(mailboxSection())
-    .setFixedFooter(dashboardFooter())
+    .addSection(CardService.newCardSection().addWidget(welcome))
+    .addSection(findSection(state))
+    .addSection(listSection(state, rows, tickAll))
+    .addSection(scanSection(getQueue()))
+    .addSection(dashboardSection())
     .build();
 }
 
-// Action 1: search, the page of emails, the scan buttons and Previous / Next.
-function checkEmailsSection(tickUnread) {
-  const state = getListState();
-  const page = listPage(state.query, state.tokens[state.page], PAGE_SIZE);
-  state.next = page.nextPageToken; // remembered for the "Next" button
-  saveListState(state);
-
-  const section = CardService.newCardSection().setHeader(ltr("1. Check emails without opening them"));
-  for (const widget of searchWidgets(state.query)) section.addWidget(widget);
-  section.addWidget(CardService.newTextParagraph().setText("<b>" + listTitle(state) + "</b>"));
-  if (page.ids.length === 0) {
-    return section.addWidget(CardService.newTextParagraph().setText(ltr(state.query ? "No emails match this search." : "Your inbox is empty.")));
-  }
-  const chips = getChips();
-  for (const row of getRows(page.ids)) section.addWidget(emailRow(row, chips[row.id], tickUnread && row.unread));
-  section.addWidget(scanButtons(getQueue()));
-  const paging = pagingButtons(state);
-  if (paging) section.addWidget(paging);
-  return section;
-}
-
-// Action 2: scan the whole mailbox for the dashboard.
-function mailboxSection() {
-  const explain = CardService.newTextParagraph().setText(
-    ltr("Headers only, " + CHUNK_SIZE + " emails per click. Then open the dashboard to see campaigns, trends and advice.")
-  );
-  const scan = CardService.newTextButton()
-    .setText(ltr("Scan mailbox (next " + CHUNK_SIZE + ")"))
-    .setOnClickAction(CardService.newAction().setFunctionName("onMailboxScanClick"));
-  return CardService.newCardSection().setHeader(ltr("2. Scan your whole mailbox")).addWidget(explain).addWidget(scan);
+// The dashboard part, clearly separate: the bulk scan reads ALL emails (not only unread).
+function dashboardSection() {
+  const explain = textLine(ltr("Reads sender headers of your whole mailbox, " + CHUNK_SIZE + " per click, to find campaigns. Not needed to check single emails."));
+  const buttons = CardService.newButtonSet()
+    .addButton(actionButton("Scan mailbox (next " + CHUNK_SIZE + ")", "onMailboxScanClick"))
+    .addButton(actionButton("Open dashboard", "onOpenDashboardClick"));
+  return CardService.newCardSection().setHeader(ltr("Dashboard (whole mailbox)")).addWidget(explain).addWidget(buttons);
 }
 
 function onMailboxScanClick(e) {
@@ -94,9 +75,9 @@ function onOpenDashboardClick(e) {
 // ---- Clicks on the email list ----
 
 // Redraw the home screen in place, with a short pop-up message.
-function redraw(text, tickUnread) {
+function redraw(text, tickAll) {
   const response = CardService.newActionResponseBuilder()
-    .setNavigation(CardService.newNavigation().updateCard(buildHomepageCard(tickUnread)));
+    .setNavigation(CardService.newNavigation().updateCard(buildHomepageCard(tickAll)));
   if (text) response.setNotification(CardService.newNotification().setText(ltr(text)));
   return response.build();
 }
@@ -111,18 +92,37 @@ function safely(handler) {
   }
 }
 
+// After a scan: refresh the home screen (new tags), then show the Scan overview on top.
+function showOverview(text) {
+  const home = buildHomepageCard(false); // first: it also saves the rows the overview shows
+  const overview = buildOverviewCard();
+  const nav = CardService.newNavigation().popToRoot().updateCard(home).pushCard(overview);
+  const response = CardService.newActionResponseBuilder().setNavigation(nav);
+  if (text) response.setNotification(CardService.newNotification().setText(ltr(text)));
+  return response.build();
+}
+
 function onSearchClick(e) {
   return safely(function () {
     const inputs = e.commonEventObject.formInputs || {};
     const query = inputs.query ? String(inputs.query.stringInputs.value[0]).trim().slice(0, 200) : "";
-    saveListState({ query: query, tokens: [""], page: 0, next: "" });
+    saveListState(newListState(query, getListState().showRead));
     return redraw("", false);
   });
 }
 
 function onClearClick(e) {
   return safely(function () {
-    saveListState({ query: "", tokens: [""], page: 0, next: "" });
+    saveListState(newListState("", getListState().showRead));
+    return redraw("", false);
+  });
+}
+
+// The "Show read emails too" switch: on = it is in the form, off = it is missing.
+function onShowReadChange(e) {
+  return safely(function () {
+    const inputs = e.commonEventObject.formInputs || {};
+    saveListState(newListState(getListState().query, Boolean(inputs.show_read)));
     return redraw("", false);
   });
 }
@@ -164,27 +164,34 @@ function onScanSelectedClick(e) {
   return safely(function () {
     const ids = pickedIds(e);
     if (ids.length === 0) return notify("Tick at least one email first.");
-    return redraw(progressText(startScan(ids)), false);
+    return showOverview(progressText(startScan(ids)));
   });
 }
 
-function onSelectUnreadClick(e) {
+function onTickAllClick(e) {
   return safely(function () {
-    return redraw("Unread emails on this page are ticked. Click Scan selected.", true);
-  });
-}
-
-function onScanTodayClick(e) {
-  return safely(function () {
-    const ids = listTodayIds();
-    if (ids.length === 0) return notify("No emails arrived today.");
-    return redraw(progressText(startScan(ids)), false);
+    return redraw("All emails on this page are ticked. Click Scan ticked emails.", true);
   });
 }
 
 function onContinueScanClick(e) {
   return safely(function () {
-    return redraw(progressText(scanNextInQueue()), false);
+    return showOverview(progressText(scanNextInQueue()));
+  });
+}
+
+// "Scan the rest" on the Scan overview: every email of the page that has no result yet.
+function onScanRestClick(e) {
+  return safely(function () {
+    const ids = countRows(getPageRows(), getChips()).unscanned;
+    if (ids.length === 0) return notify("Every email on this page is scanned.");
+    return showOverview(progressText(startScan(ids)));
+  });
+}
+
+function onOverviewClick(e) {
+  return safely(function () {
+    return CardService.newActionResponseBuilder().setNavigation(CardService.newNavigation().pushCard(buildOverviewCard())).build();
   });
 }
 
