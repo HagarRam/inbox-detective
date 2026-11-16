@@ -29,11 +29,21 @@ function startScan(ids, newScan) {
   return scanNextInQueue();
 }
 
+// The title of the strongest warning sign (findings come sorted, strongest first), or "".
+function topWarning(findings) {
+  for (const f of findings || []) {
+    if (f.points > 0) return String(f.title).slice(0, 50);
+  }
+  return "";
+}
+
 // The short form of one result, for the alert and the Scan overview.
+// (Shortened only to fit the storage; Gmail shortens the display.)
 function lastScanEntry(id, result) {
   const from = result.from || {};
   const sender = String(from.name || from.address || "(unknown sender)").slice(0, 40);
-  return { id: id, verdict: result.verdict, score: result.score, sender: sender, subject: String(result.subject || "(no subject)").slice(0, 80) };
+  const subject = String(result.subject || "(no subject)").slice(0, 80);
+  return { id: id, verdict: result.verdict, score: result.score, sender: sender, subject: subject, top: topWarning(result.findings) };
 }
 
 // Scan the next 5 emails of the queue and remember each result.
