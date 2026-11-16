@@ -58,7 +58,8 @@ function isPlainObject(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// Layer 1 (before the email is opened): body is { "headers": { "From": "...", ... } }
+// Layer 1 (before the email is opened): body is { "headers": { "From": "...", ... }, "id": "<Gmail id>" }
+// Like /analyze, a valid id also adds the (headers-only) result to the dashboard.
 // Headers are small, so this address has its own 64 KB limit. It is registered
 // BEFORE the 5 MB parser below, so the small limit is the one that counts here.
 app.post("/analyze-headers", requireApiKey, express.json({ limit: "64kb" }), async (req, res) => {
@@ -67,7 +68,10 @@ app.post("/analyze-headers", requireApiKey, express.json({ limit: "64kb" }), asy
     return res.status(400).json({ error: "Body must be JSON: { headers: { name: value } }" });
   }
   try {
-    res.json(await analyzeHeaders(headers));
+    const result = await analyzeHeaders(headers);
+    const id = req.body.id;
+    if (typeof id === "string" && ID_PATTERN.test(id)) saveRecords([toRecord(id, result, false)]);
+    res.json(result);
   } catch (err) {
     console.error("Headers analysis failed:", err.message);
     res.status(500).json({ error: "Could not analyze these headers" });

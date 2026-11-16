@@ -19,8 +19,12 @@ const HEADER_NAMES = ["From", "Reply-To", "Return-Path", "Authentication-Results
 // - a value must be text; line breaks inside it become spaces, so a value
 //   can never add a header of its own (for example a fake Authentication-Results)
 function headersToText(headers) {
+  // If the same name comes twice ("From" and "from"), the FIRST one wins.
   const byLowerName = {};
-  for (const name of Object.keys(headers)) byLowerName[name.toLowerCase()] = headers[name];
+  for (const name of Object.keys(headers)) {
+    const lower = name.toLowerCase();
+    if (!(lower in byLowerName)) byLowerName[lower] = headers[name];
+  }
 
   const lines = [];
   for (const name of HEADER_NAMES) {

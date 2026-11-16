@@ -2,8 +2,9 @@
 // The "pre-open scanner": checks emails BEFORE the user opens them.
 //
 // Why: opening an email can already leak information (for example a tracking
-// pixel tells the sender "this address is alive"). Here the email is read only
-// as raw text, through the Gmail API, and is never shown. It also stays unread.
+// pixel tells the sender "this address is alive"). Here we read ONLY the sender
+// headers (format=metadata), never the body. Nothing is shown and the email
+// stays unread. Opening the email later runs the full check (Code.gs).
 
 // How many of the newest inbox emails the home screen lists.
 const RECENT_EMAILS = 10;
@@ -20,11 +21,12 @@ function listRecentEmails() {
   return emails;
 }
 
-// Scan one email. Returns { id, result } or, if it failed, { id, error }.
+// Scan one email from its headers only. Returns { id, result } or, if it failed, { id, error }.
 function scanOneEmail(messageId) {
   try {
-    const raw = getRawEmail(messageId);
-    return { id: messageId, result: callBackend(raw, messageId) }; // also added to the dashboard
+    const headers = getHeadersOnly(messageId);
+    const result = postToBackend("/analyze-headers", { headers: headers, id: messageId }); // also added to the dashboard
+    return { id: messageId, result: result };
   } catch (err) {
     console.error("Could not scan " + messageId + ": " + err.message);
     return { id: messageId, error: err.message };
