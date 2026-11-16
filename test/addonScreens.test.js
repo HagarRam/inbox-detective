@@ -58,11 +58,14 @@ test("(a) the list leaves out emails that were already scanned", () => {
   assert.deepStrictEqual(rows.map((r) => r.id), ["m2", "m3"]);
 });
 
-test("(b) the alert counts: zero counts are left out; only clean results say so", () => {
+test("(b) the alert counts: zero counts are left out, and fine emails are not ignored", () => {
   const r = (verdict) => ({ verdict });
-  assert.strictEqual(sandbox.alertText([r("malicious"), r("malicious"), r("suspicious"), r("likely safe")]), "⛔ 2 dangerous, 1 suspicious emails need attention");
-  assert.strictEqual(sandbox.alertText([r("suspicious")]), "⛔ 1 suspicious emails need attention");
-  assert.strictEqual(sandbox.alertText([r("likely safe"), r("likely safe")]), "2 emails checked, no strong red flags");
+  assert.strictEqual(sandbox.alertText([r("malicious"), r("malicious"), r("suspicious"), r("likely safe")]), "⛔ 2 dangerous, 1 suspicious need attention");
+  assert.strictEqual(sandbox.alertText([r("suspicious"), r("likely safe")]), "⛔ 1 suspicious needs attention");
+  assert.strictEqual(sandbox.cleanText([r("suspicious"), r("likely safe")]), "⚪ 1 email: no strong red flags");
+  assert.strictEqual(sandbox.alertText([r("likely safe"), r("likely safe")]), "2 emails checked: no strong red flags");
+  assert.strictEqual(sandbox.cleanText([r("likely safe")]), ""); // already said in the first line
+  assert.ok(!/safe/i.test(sandbox.cleanText([r("malicious"), r("likely safe")])));
   assert.strictEqual(sandbox.alertWidgets([]).length, 0);
 });
 
