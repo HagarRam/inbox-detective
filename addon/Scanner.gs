@@ -6,20 +6,8 @@
 // headers (format=metadata), never the body. Nothing is shown and the email
 // stays unread. Opening the email later runs the full check (Code.gs).
 
-// How many of the newest inbox emails the home screen lists.
-const RECENT_EMAILS = 10;
-
 // Google gives one button click only 30 seconds, so we scan a few emails per click.
 const EMAILS_PER_CLICK = 5;
-
-// The newest inbox emails, as { id, from, subject }. No body is read here.
-function listRecentEmails() {
-  const emails = [];
-  for (const id of listInboxIds(RECENT_EMAILS)) {
-    emails.push(getFromAndSubject(id));
-  }
-  return emails;
-}
 
 // Scan one email from its headers only. Returns { id, result } or, if it failed, { id, error }.
 function scanOneEmail(messageId) {
@@ -33,11 +21,31 @@ function scanOneEmail(messageId) {
   }
 }
 
-// Scan up to EMAILS_PER_CLICK of the given ids.
-function scanEmails(ids) {
-  const scans = [];
-  for (let i = 0; i < ids.length && i < EMAILS_PER_CLICK; i++) {
-    scans.push(scanOneEmail(ids[i]));
+// Put these emails in the queue and scan the first 5.
+function startScan(ids) {
+  saveQueue({ ids: ids, total: ids.length });
+  return scanNextInQueue();
+}
+
+// Scan the next 5 emails of the queue and remember each result for its row.
+// Returns { scanned, total, left, error }: error is the last problem, or "".
+function scanNextInQueue() {
+  const queue = getQueue();
+  const now = queue.ids.splice(0, EMAILS_PER_CLICK); // take the first 5 out of the queue
+  let error = "";
+  for (const id of now) {
+    const scan = scanOneEmail(id);
+    if (scan.error) error = scan.error;
+    else saveChip(id, scan.result);
   }
-  return scans;
+  saveQueue(queue);
+  return { scanned: queue.total - queue.ids.length, total: queue.total, left: queue.ids.length, error: error };
+}
+
+// The pop-up message after a click, e.g. "Scanned 5 of 12. Click Continue scan for the next 5."
+function progressText(progress) {
+  if (progress.error) return friendlyError(progress.error);
+  if (progress.left === 0) return "Scanned " + progress.total + (progress.total === 1 ? " email." : " emails.");
+  const next = Math.min(EMAILS_PER_CLICK, progress.left);
+  return "Scanned " + progress.scanned + " of " + progress.total + ". Click Continue scan for the next " + next + ".";
 }
