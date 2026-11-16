@@ -8,7 +8,8 @@
     "test": "node --test",
     "demo": "node demo.js",
     "campaigns": "node scripts/campaignDemo.js",
-    "seed-dashboard": "node scripts/seedDashboard.js"
+    "seed-dashboard": "node scripts/seedDashboard.js",
+    "demo:start": "node scripts/demoStart.js"
   },
   "keywords": [],
   "author": "",
