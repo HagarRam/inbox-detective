@@ -11,12 +11,15 @@
 // - The server listens only on 127.0.0.1: it is reachable from outside ONLY
 //   through the HTTPS tunnel (ngrok), never directly.
 // - We never store the email. We analyze it in memory and forget it.
+//   Only a short summary (sender, subject, date, score, finding titles) is
+//   kept for the dashboard, the same as the mailbox scan keeps.
 
 require("dotenv").config();
 const crypto = require("crypto");
 const express = require("express");
 const { analyzeRaw } = require("./analyze");
 const { dashboardRoutes } = require("./dashboard/routes");
+const { ID_PATTERN, toRecord, saveRecords } = require("./dashboard/scanStore");
 const { rateLimit } = require("./security/rateLimit");
 const { securityHeaders, errorHandler } = require("./security/headers");
 
@@ -55,14 +58,19 @@ app.get("/", (req, res) => {
   res.send("Inbox Detective is alive");
 });
 
-// Main endpoint: body is { "raw": "<the full .eml text>" }
+// Main endpoint: body is { "raw": "<the full .eml text>", "id": "<Gmail id>" }
+// "id" is optional. When it is a valid Gmail id, the result is also added to the
+// dashboard, so every email you check shows up there right away.
+// A missing or strange id is simply not saved; the analysis still works.
 app.post("/analyze", requireApiKey, async (req, res) => {
   const raw = req.body && req.body.raw;
+  const id = req.body && req.body.id;
   if (typeof raw !== "string" || raw.length === 0) {
-    return res.status(400).json({ error: "Body must be JSON: { raw: string }" });
+    return res.status(400).json({ error: "Body must be JSON: { raw: string, id?: string }" });
   }
   try {
     const result = await analyzeRaw(raw);
+    if (typeof id === "string" && ID_PATTERN.test(id)) saveRecords([toRecord(id, result, true)]);
     res.json(result);
   } catch (err) {
     // Do not send internal error details back to the caller.
