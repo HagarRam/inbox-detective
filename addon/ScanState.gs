@@ -2,6 +2,7 @@
 // A small memory between clicks, in User Properties (only this user can see it):
 //   LIST_STATE  which list is shown: the search text and the page
 //   PAGE_ROWS   the emails of the shown page (so a tick can redraw without asking Gmail again)
+//   SCANNED_ROWS the emails already scanned, for the "Already scanned" part
 //   SCAN_QUEUE  ticked emails still waiting to be scanned (5 per click)
 //   SCAN_CHIPS  the pre-open result of each scanned email: hides it from the list,
 //               and warns when that email is opened later
@@ -20,7 +21,8 @@ function saveJson(key, value) {
   PropertiesService.getUserProperties().setProperty(key, JSON.stringify(value));
 }
 
-// { query, page, next }: page 0 = the first page; next = "" when this is the last page.
+// { query, page, next, total, checked }: page 0 = the first page; next = "" on the last page;
+// total = unread emails in the list, checked = how many of them were already scanned.
 function newListState(query) {
   return { query: query, page: 0, next: "" };
 }
@@ -34,14 +36,24 @@ function saveListState(state) {
 }
 
 // [{ id, sender, subject, date }]. Shortened only to fit the storage; Gmail shortens the display.
-function savePageRows(rows) {
-  saveJson("PAGE_ROWS", rows.map(function (row) {
+//   PAGE_ROWS     the not-yet-scanned emails of the shown page
+//   SCANNED_ROWS  the "Already scanned" emails under the list
+function saveRows(key, rows) {
+  saveJson(key, rows.map(function (row) {
     return { id: row.id, sender: row.sender.slice(0, 60), subject: row.subject.slice(0, 120), date: row.date };
   }));
 }
 
+function savePageRows(rows) {
+  saveRows("PAGE_ROWS", rows);
+}
+
 function getPageRows() {
   return readJson("PAGE_ROWS", []);
+}
+
+function getScannedRows() {
+  return readJson("SCANNED_ROWS", []);
 }
 
 // { ids: [still to scan] }

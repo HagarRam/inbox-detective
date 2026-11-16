@@ -1,7 +1,8 @@
 // Homepage.gs
 // The add-on "home screen": shown when NO email is open. Top to bottom:
 //   search -> alert after a scan ("View results") -> "Unread emails" (not scanned yet, tick them)
-//   -> Previous / Next, Page N -> "Scan N ticked emails" -> "Tick all on this page".
+//   -> Previous / Next, Page N -> "Scan N ticked emails" -> "Tick all on this page"
+//   -> "Already scanned" (with their tags; a tap opens the details, not the email).
 // "Open dashboard" is in the fixed footer, so it is always visible without scrolling.
 // The whole-mailbox scan is in the card menu (the three dots).
 // This file builds the card and handles the clicks; ScannerCard.gs and Overview.gs build the pieces.
@@ -26,29 +27,40 @@ function buildHomepageCard(ticked, useSavedPage) {
     .addSection(topSection())
     .addSection(listSection(rows, ticked))
     .addSection(actionsSection(count))
+    .addSection(alreadyScannedSection(getScannedRows(), getChips(), getListState()))
     .addCardAction(menu)
     .setFixedFooter(dashboardFooter())
     .build();
 }
 
 // The list works like a queue: first take up to 200 unread emails (ids only, one cheap call),
-// remove the ones already scanned, THEN cut pages of 25. Scanned or opened emails leave the
-// list and the next ones move up. Sender and subject are loaded only for the 25 shown.
+// split them into "not scanned yet" and "already scanned", THEN cut pages of 25.
+// Scanned or opened emails leave the list and the next ones move up.
+// Sender and subject are loaded (in one go) only for the 25 shown + the scanned ones shown below.
 function loadPageRows() {
   const state = getListState();
   const chips = getChips();
-  const ids = listPage(listQuery(state), "", MAX_LISTED).ids.filter(function (id) { return !chips[id]; });
+  const all = listPage(listQuery(state), "", MAX_LISTED).ids;
+  const notScanned = all.filter(function (id) { return !chips[id]; });
+  const scanned = all.filter(function (id) { return chips[id]; });
   const start = state.page * PAGE_SIZE;
-  state.next = ids.length > start + PAGE_SIZE ? "more" : ""; // "" = this is the last page
+  state.next = notScanned.length > start + PAGE_SIZE ? "more" : ""; // "" = this is the last page
+  state.total = all.length;
+  state.checked = scanned.length;
   saveListState(state);
-  const rows = getRows(ids.slice(start, start + PAGE_SIZE));
-  savePageRows(rows);
-  return rows;
+  const rows = getRows(notScanned.slice(start, start + PAGE_SIZE).concat(scanned.slice(0, MAX_ALREADY_SCANNED)));
+  const pageRows = rows.filter(function (row) { return !chips[row.id]; });
+  savePageRows(pageRows);
+  saveRows("SCANNED_ROWS", rows.filter(function (row) { return chips[row.id]; }));
+  return pageRows;
 }
 
-// The search field, and the alert after a scan.
+// The search field, "Checked 12 of 50 unread emails", and the alert after a scan.
 function topSection() {
-  const section = CardService.newCardSection().addWidget(searchInput(getListState().query));
+  const state = getListState();
+  const section = CardService.newCardSection().addWidget(searchInput(state.query));
+  const progress = progressLine(state);
+  if (progress) section.addWidget(textLine("<b>" + ltr(progress) + "</b>"));
   for (const widget of alertWidgets(getLastScan())) section.addWidget(widget);
   return section;
 }
