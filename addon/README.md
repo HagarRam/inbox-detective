@@ -4,14 +4,17 @@ One add-on with two screens:
 
 - **An email is open:** the add-on reads that email as raw text, sends it to the backend
   `POST /analyze` (with the `X-API-Key` header) and shows the score, verdict and findings.
-- **No email is open (home screen):** a search field (Enter runs it, empty = the normal list),
-  a *Last scan* line with *View overview*, the 25 newest **unread** inbox emails with a checkbox
-  each, "‹ Page N ›" at the bottom, a blue *Scan ticked emails* button (*Tick all on this page*
-  under it, *Continue scan* while a scan runs) and a purple *Open dashboard* button.
+- **No email is open (home screen):** a search field (Enter runs it), the **unread** emails that
+  were **not scanned yet** (25 per page, *Previous / Next*, a checkbox each; ticking updates the
+  button to *Scan N ticked emails*), *Tick all on this page*, and a purple *Open dashboard*.
   The scan fetches only the **sender headers** (`format=metadata`), sends them to
-  `POST /analyze-headers`, 5 per click, and opens the **Scan overview** card: counts, what was
-  checked / not checked, *Needs your attention* (tap = details + "If you had clicked"),
-  *Scan the rest* and *Back to list*. Opening an email runs the full check.
+  `POST /analyze-headers`, 5 per click (the rest stay ticked). Scanned emails leave the list and
+  an alert with a red *View results* button opens the **Scan overview**: counts, checked / not
+  checked, *Needs your attention* (highest score first, tap = details + "If you had clicked"),
+  *Scan the rest*, *Back to list*.
+- **Opening an email that was flagged before opening:** the first section is a warning
+  ("⛔ WARNING: you were warned before opening this email", "Pre-open check: Dangerous, score N").
+  Gmail cannot pop up or block opening; the warning is in the side panel.
 - **Dashboard (whole mailbox), in the card menu (⋮):** "Scan whole mailbox (for dashboard)" reads ALL emails (not only unread) and sends the **headers only** of the
   next 50 emails to `POST /scan-batch` (where it stopped is saved in User Properties).
   Each click first adds the emails that arrived since the last click.

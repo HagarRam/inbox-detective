@@ -4,12 +4,16 @@
 //
 // Flow: get the raw email -> send it to the backend -> show the result in a card.
 // The server also adds the result to the dashboard (we send the email id).
+// Gmail cannot pop up a window or stop an email from opening. If the pre-open check
+// found it Dangerous or Suspicious, the warning is the first thing in the side panel.
 
 function onGmailMessageOpen(e) {
   try {
     const raw = getOpenedEmailRaw(e);
     const result = callBackend(raw, e.gmail.messageId);
-    return buildResultCard(result);
+    // Was this email checked BEFORE it was opened, with a bad result? Then warn first.
+    const preOpen = getChips()[e.gmail.messageId];
+    return buildResultCard(result, isFlagged(preOpen) ? preOpen : null);
   } catch (err) {
     // Log the details for us; show the user only a short, safe message.
     console.error(err);

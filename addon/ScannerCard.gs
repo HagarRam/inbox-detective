@@ -1,9 +1,12 @@
 // ScannerCard.gs
-// The pieces of the home screen: search, rows, paging, buttons. Also the details card.
+// The pieces of the home screen: search, alert, rows, pager, buttons. Also the details card.
 // It only BUILDS widgets; the clicks are handled in Homepage.gs.
+// CardService decides sizes and fonts; we only choose the style (FILLED / TEXT),
+// the color of FILLED buttons, and whether a button is disabled.
 
-const BLUE = "#1A73E8"; // the main action: scan
-const PURPLE = "#673AB7"; // a different place: the dashboard
+const BLUE = "#1a73e8"; // scan
+const PURPLE = "#673ab7"; // dashboard
+const RED = "#c5221f"; // results that need attention
 const GREY = "#5f6368";
 
 // A button that runs one function of the add-on.
@@ -13,7 +16,6 @@ function actionButton(text, functionName) {
     .setOnClickAction(CardService.newAction().setFunctionName(functionName));
 }
 
-// A filled (colored) button, or a plain text button.
 function filledButton(text, functionName, color) {
   return actionButton(text, functionName).setTextButtonStyle(CardService.TextButtonStyle.FILLED).setBackgroundColor(color);
 }
@@ -37,15 +39,7 @@ function searchInput(query) {
   return input;
 }
 
-// "Last scan: 2 dangerous, 1 suspicious" + "View overview", or null if nothing was scanned.
-function lastScanLine(counts) {
-  if (counts.malicious + counts.suspicious + counts.clean === 0) return null;
-  return CardService.newDecoratedText()
-    .setText(ltr("Last scan: " + counts.malicious + " dangerous, " + counts.suspicious + " suspicious"))
-    .setButton(textButton("View overview", "onOverviewClick"));
-}
-
-// The tag after a scan, e.g. "🔴 Dangerous · 95". Never the word "safe".
+// The tag of a result, e.g. "🔴 Dangerous · 95". Never the word "safe".
 const TAG_WORDS = { malicious: "🔴 Dangerous", suspicious: "🟠 Suspicious", "likely safe": "⚪ No strong red flags" };
 
 function chipText(chip) {
@@ -53,52 +47,94 @@ function chipText(chip) {
   return (TAG_WORDS[chip.verdict] || chip.verdict) + " · " + chip.score;
 }
 
-// A row that came out Suspicious or Malicious is opened with a tap, not ticked again.
 function isFlagged(chip) {
   return Boolean(chip) && chip.verdict !== "likely safe";
 }
 
-// Tapping a Suspicious / Malicious row opens its details card.
+// Tapping a Dangerous / Suspicious email opens its details card.
 function rowClickAction(id) {
   return CardService.newAction().setFunctionName("onRowClick").setParameters({ id: id });
 }
 
-// One email: sender on top, subject (bold) in the middle, date (or the tag after a scan) below.
-// The sender and subject come from the email (attacker text), so they are escaped.
-function emailRow(row, chip, ticked) {
-  const widget = CardService.newDecoratedText()
-    .setTopLabel(escapeHtml(shorten(row.sender, 40)))
-    .setText("<b>" + escapeHtml(shorten(row.subject, 70)) + "</b>")
-    .setBottomLabel(ltr(chip ? chipText(chip) : row.date))
-    .setWrapText(true);
-  if (isFlagged(chip)) return widget.setOnClickAction(rowClickAction(row.id));
+// ---- The alert after a scan ----
+
+// Count the results of the current scan.
+function countResults(results) {
+  const counts = { malicious: 0, suspicious: 0, clean: 0 };
+  for (const r of results) {
+    if (r.verdict === "malicious") counts.malicious++;
+    else if (r.verdict === "suspicious") counts.suspicious++;
+    else counts.clean++;
+  }
+  return counts;
+}
+
+// "⛔ 2 dangerous, 1 suspicious emails need attention" (a count of 0 is left out),
+// or "4 emails checked, no strong red flags".
+function alertText(results) {
+  const counts = countResults(results);
+  const parts = [];
+  if (counts.malicious > 0) parts.push(counts.malicious + " dangerous");
+  if (counts.suspicious > 0) parts.push(counts.suspicious + " suspicious");
+  if (parts.length === 0) return results.length + (results.length === 1 ? " email" : " emails") + " checked, no strong red flags";
+  return "⛔ " + parts.join(", ") + " emails need attention";
+}
+
+function viewResultsButton() {
+  return filledButton("View results", "onOverviewClick", RED);
+}
+
+// The alert block, or [] when nothing was scanned yet.
+function alertWidgets(results) {
+  if (results.length === 0) return [];
+  const checked = results.length + (results.length === 1 ? " email checked" : " emails checked");
+  return [
+    textLine("<b>" + ltr(alertText(results)) + "</b>"),
+    textLine('<font color="' + GREY + '">' + ltr(checked) + "</font>"),
+    viewResultsButton(),
+  ];
+}
+
+// ---- The list ----
+
+// One email: sender on top, bold subject, date below, and a checkbox.
+// Gmail shortens long text itself (wrap off). The text comes from the email, so it is escaped.
+// Ticking a box redraws the card, so the Scan button can show how many are ticked.
+function emailRow(row, ticked) {
   const box = CardService.newSwitch()
     .setControlType(CardService.SwitchControlType.CHECK_BOX)
     .setFieldName("pick_" + row.id) // one field per row; Homepage.gs reads every "pick_..."
     .setValue(row.id)
-    .setSelected(ticked);
-  return widget.setSwitchControl(box);
+    .setSelected(ticked)
+    .setOnChangeAction(CardService.newAction().setFunctionName("onTickChange"));
+  return CardService.newDecoratedText()
+    .setTopLabel(escapeHtml(row.sender))
+    .setText("<b>" + escapeHtml(row.subject) + "</b>")
+    .setBottomLabel(ltr(row.date))
+    .setWrapText(false)
+    .setSwitchControl(box);
 }
 
-// "‹  Page N  ›" at the bottom. "Page N" is a disabled button, used as a label.
-function pagingButtons(state) {
-  if (state.page === 0 && !state.next) return null; // only one page
-  const previous = actionButton("‹", "onPreviousClick").setDisabled(state.page === 0);
-  const label = CardService.newTextButton().setText(ltr("Page " + (state.page + 1))).setDisabled(true)
-    .setOnClickAction(CardService.newAction().setFunctionName("onRefreshClick")); // a button needs an action; it is disabled anyway
-  const next = actionButton("›", "onNextClick").setDisabled(!state.next);
-  return CardService.newButtonSet().addButton(previous).addButton(label).addButton(next);
+// "Previous" / "Next" (words, not arrows: arrows flip in Hebrew Gmail) and "Page N".
+function pagerWidgets(state) {
+  const previous = textButton("Previous", "onPreviousClick").setDisabled(state.page === 0);
+  const next = textButton("Next", "onNextClick").setDisabled(!state.next);
+  return [CardService.newButtonSet().addButton(previous).addButton(next), textLine(ltr("Page " + (state.page + 1)))];
 }
 
-// "No unread emails." or, for a search, "No unread emails match this search."
-function emptyText(state) {
-  return state.query ? "No unread emails match this search." : "No unread emails.";
+// ---- The buttons ----
+
+function scanButton(tickedCount) {
+  const label = tickedCount > 0 ? "Scan " + tickedCount + " ticked " + (tickedCount === 1 ? "email" : "emails") : "Scan ticked emails";
+  return filledButton(label, "onScanSelectedClick", BLUE);
 }
 
-// The small grey label above the rows. The search text is escaped like any other text.
-function listTitle(state) {
-  if (!state.query) return ltr("Unread emails");
-  return ltr("Unread emails matching \"" + escapeHtml(shorten(state.query, 50)) + "\"");
+function tickAllButton() {
+  return textButton("Tick all on this page", "onTickAllClick");
+}
+
+function dashboardButton() {
+  return filledButton("Open dashboard", "onOpenDashboardClick", PURPLE);
 }
 
 // The words of the warning box. Fixed text, never taken from the email.

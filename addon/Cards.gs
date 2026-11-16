@@ -15,7 +15,7 @@ const LOGO_URL = "https://www.gstatic.com/images/icons/material/system/1x/label_
 const TOP_FINDINGS = 5; // shown at once; the rest are behind "show more"
 
 // Every verdict = an emoji + a word, never color alone.
-const VERDICT_LABELS = { malicious: "🔴 Malicious", suspicious: "🟠 Suspicious", "likely safe": "🟢 Likely safe" };
+const VERDICT_LABELS = { malicious: "🔴 Dangerous", suspicious: "🟠 Suspicious", "likely safe": "🟢 Likely safe" };
 
 // Headers only (before opening) with a low score: we did not see the links or
 // the attachments, so we never say "safe". White, not green: no false reassurance.
@@ -76,10 +76,10 @@ function findingSymbol(points) {
   return "•";
 }
 
-// "+30 points", "-20 points" or "information"
+// "+30", "-20" or "information"
 function pointsText(points) {
-  if (points > 0) return "+" + points + " points";
-  if (points < 0) return points + " points";
+  if (points > 0) return "+" + points;
+  if (points < 0) return String(points);
   return "information";
 }
 
@@ -94,28 +94,54 @@ function findingRow(f) {
 
 // All findings (already sorted by impact). The first TOP_FINDINGS show; the rest fold away.
 function findingsSection(findings) {
-  const count = findings.length === 1 ? "1 finding" : findings.length + " findings";
-  const section = CardService.newCardSection().setHeader(ltr("Why (" + count + ")"));
+  const section = CardService.newCardSection().setHeader(ltr("Why"));
   if (findings.length === 0) return section.addWidget(CardService.newTextParagraph().setText(ltr("No signals found.")));
   for (const f of findings) section.addWidget(findingRow(f));
   if (findings.length > TOP_FINDINGS) section.setCollapsible(true).setNumUncollapsibleWidgets(TOP_FINDINGS);
   return section;
 }
 
-// The one primary (filled) button, fixed at the bottom of the card.
+// "Open dashboard" (purple), fixed at the bottom of the card.
 function dashboardFooter() {
-  const button = CardService.newTextButton()
-    .setText("Open dashboard")
-    .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
-    .setOnClickAction(CardService.newAction().setFunctionName("onOpenDashboardClick"));
-  return CardService.newFixedFooter().setPrimaryButton(button);
+  return CardService.newFixedFooter().setPrimaryButton(dashboardButton());
 }
 
-function buildResultCard(result) {
-  const card = CardService.newCardBuilder()
-    .setHeader(cardHeader("Analysis of this email"))
-    .addSection(verdictSection(result))
-    .addSection(findingsSection(result.findings));
+// Shown FIRST when this email was checked before opening and came out Dangerous or Suspicious.
+// Gmail cannot pop up a window or block opening an email: the warning shows here,
+// in the side panel, when the email is opened.
+const PRE_OPEN_WARNINGS = {
+  malicious: { color: "#c5221f", title: "⛔ WARNING: you were warned before opening this email", word: "Dangerous" },
+  suspicious: { color: "#b06000", title: "⚠️ Be careful with this email", word: "Suspicious" },
+};
+
+function preOpenWarningSection(chip) {
+  const warning = PRE_OPEN_WARNINGS[chip.verdict];
+  const html = '<font color="' + warning.color + '"><b>' + ltr(warning.title) + "</b></font><br>" +
+    ltr("Do not click links, do not open attachments, do not reply.") + "<br>" +
+    ltr("Pre-open check: " + warning.word + ", score " + chip.score);
+  return CardService.newCardSection().addWidget(CardService.newTextParagraph().setText(html));
+}
+
+// "Bank Security <alerts@x.example>": the name AND the real address (attacker text, escaped).
+function senderText(from) {
+  if (!from) return "(unknown sender)";
+  return from.name ? from.name + " <" + from.address + ">" : from.address;
+}
+
+// Bold subject, sender, verdict + score, and the one-sentence summary.
+function emailSummarySection(result) {
+  const subject = CardService.newTextParagraph().setText("<b>" + escapeHtml(result.subject || "(no subject)") + "</b><br>" + escapeHtml(senderText(result.from)));
+  return CardService.newCardSection()
+    .addWidget(subject)
+    .addWidget(verdictWidget(result))
+    .addWidget(CardService.newTextParagraph().setText(ltr(escapeHtml(summarySentence(result)))));
+}
+
+// preOpen = the stored pre-open result ({ verdict, score }) when it was Dangerous or Suspicious, else null.
+function buildResultCard(result, preOpen) {
+  const card = CardService.newCardBuilder().setHeader(cardHeader("Analysis of this email"));
+  if (preOpen) card.addSection(preOpenWarningSection(preOpen)); // always the first section
+  card.addSection(emailSummarySection(result)).addSection(findingsSection(result.findings));
   if (result.scenario) card.addSection(scenarioSection(result.scenario)); // only for Suspicious / Malicious
   return card.setFixedFooter(dashboardFooter()).build();
 }

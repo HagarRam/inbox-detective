@@ -1,75 +1,66 @@
 // Overview.gs
-// The "Scan overview" card. It opens on top of the home screen after every scan
-// (and from "View overview"). It answers: what was found on this page, what was
-// checked and what was not, which emails need attention, and what is not scanned yet.
+// The "Scan overview" card, opened with "View results". It shows the current scan:
+// the counts, what was checked and what was not, the emails that need attention,
+// and how many emails of the page are still not scanned.
 
-const CHECKED_TEXT = "Checked: the sender (SPF, DKIM, DMARC), Reply-To, display name and domain age. " +
-  "Not checked: links, attachments and message text. Open an email for the full check.";
+const CHECKED_TEXT = "Checked: the sender (SPF, DKIM, DMARC), Reply-To, display name and domain age.";
+const NOT_CHECKED_TEXT = "Not checked: links, attachments and message text. Open an email for the full check.";
 
-// Count the emails of the shown page by their last result.
-function countRows(rows, chips) {
-  const counts = { malicious: 0, suspicious: 0, clean: 0, unscanned: [] };
-  for (const row of rows) {
-    const chip = chips[row.id];
-    if (!chip) counts.unscanned.push(row.id);
-    else if (chip.verdict === "malicious") counts.malicious++;
-    else if (chip.verdict === "suspicious") counts.suspicious++;
-    else counts.clean++;
-  }
-  return counts;
+// The emails of the shown page that have no result yet.
+function unscannedIds() {
+  const chips = getChips();
+  return getPageRows().map(function (row) { return row.id; }).filter(function (id) { return !chips[id]; });
 }
 
-// One count line, e.g. "🔴 2 Dangerous".
-function countLine(text) {
-  return CardService.newDecoratedText().setText("<b>" + ltr(text) + "</b>");
-}
-
-// The three counts and what was (not) checked.
-function countsSection(counts) {
+// Three count lines (Columns holds only 2 columns, so we use 3 lines) and what was checked.
+function countsSection(results) {
+  const counts = countResults(results);
   return CardService.newCardSection()
-    .addWidget(countLine("🔴 " + counts.malicious + " Dangerous"))
-    .addWidget(countLine("🟠 " + counts.suspicious + " Suspicious"))
-    .addWidget(countLine("⚪ " + counts.clean + " No strong red flags"))
-    .addWidget(textLine('<font color="' + GREY + '">' + ltr(CHECKED_TEXT) + "</font>"));
+    .addWidget(CardService.newDecoratedText().setText("<b>" + ltr(counts.malicious + " Dangerous") + "</b>"))
+    .addWidget(CardService.newDecoratedText().setText("<b>" + ltr(counts.suspicious + " Suspicious") + "</b>"))
+    .addWidget(CardService.newDecoratedText().setText("<b>" + ltr(counts.clean + " No strong red flags") + "</b>"))
+    .addWidget(textLine('<font color="' + GREY + '">' + ltr(CHECKED_TEXT) + "<br>" + ltr(NOT_CHECKED_TEXT) + "</font>"));
 }
 
-// "Needs your attention": 🔴 first, then 🟠. Each one opens its details with a tap.
-function attentionSection(rows, chips) {
+// Dangerous and Suspicious emails, highest score first. A tap opens the details card.
+function attentionSection(results) {
+  const flagged = results.filter(function (r) { return r.verdict !== "likely safe"; });
+  flagged.sort(function (a, b) { return b.score - a.score; });
   const section = CardService.newCardSection().setHeader(ltr("Needs your attention"));
-  for (const verdict of ["malicious", "suspicious"]) {
-    for (const row of rows) {
-      const chip = chips[row.id];
-      if (!chip || chip.verdict !== verdict) continue;
-      section.addWidget(CardService.newDecoratedText()
-        .setTopLabel(escapeHtml(row.sender))
-        .setText(escapeHtml(row.subject))
-        .setBottomLabel(ltr(chipText(chip)))
-        .setWrapText(true)
-        .setOnClickAction(rowClickAction(row.id)));
-    }
+  for (const r of flagged) {
+    section.addWidget(CardService.newDecoratedText()
+      .setTopLabel(escapeHtml(r.sender))
+      .setText("<b>" + escapeHtml(r.subject) + "</b>")
+      .setBottomLabel(ltr(chipText(r)))
+      .setWrapText(false)
+      .setOnClickAction(rowClickAction(r.id)));
   }
   return section;
 }
 
-// "N emails on this page were not scanned yet." + "Scan the rest" (only if there are some),
-// "Continue scan" while a scan is running, and "Back to list".
-function nextStepsSection(counts, queue) {
+function scanRestButton() {
+  return filledButton("Scan the rest", "onScanRestClick", BLUE);
+}
+
+function backToListButton() {
+  return textButton("Back to list", "onBackToListClick");
+}
+
+// "N emails on this page were not scanned yet." + "Scan the rest", then "Back to list".
+function nextStepsSection() {
   const section = CardService.newCardSection();
-  const left = counts.unscanned.length;
+  const left = unscannedIds().length;
   if (left > 0) {
     section.addWidget(textLine(ltr(left + (left === 1 ? " email" : " emails") + " on this page were not scanned yet.")));
-    section.addWidget(filledButton("Scan the rest", "onScanRestClick", BLUE));
+    section.addWidget(scanRestButton());
   }
-  if (queue.ids.length > 0) section.addWidget(textButton("Continue scan (" + queue.ids.length + " left)", "onContinueScanClick"));
-  return section.addWidget(textButton("Back to list", "onBackToListClick"));
+  return section.addWidget(backToListButton());
 }
 
 function buildOverviewCard() {
-  const rows = getPageRows();
-  const chips = getChips();
-  const counts = countRows(rows, chips);
+  const results = getLastScan();
   const card = CardService.newCardBuilder().setHeader(CardService.newCardHeader().setTitle(ltr("Scan overview")));
-  card.addSection(countsSection(counts));
-  if (counts.malicious + counts.suspicious > 0) card.addSection(attentionSection(rows, chips));
-  return card.addSection(nextStepsSection(counts, getQueue())).build();
+  card.addSection(countsSection(results));
+  if (countResults(results).malicious + countResults(results).suspicious > 0) card.addSection(attentionSection(results));
+  return card.addSection(nextStepsSection()).build();
 }
