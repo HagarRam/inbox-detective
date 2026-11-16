@@ -17,6 +17,15 @@ const TOP_FINDINGS = 5; // shown at once; the rest are behind "show more"
 // Every verdict = an emoji + a word, never color alone.
 const VERDICT_LABELS = { malicious: "🔴 Malicious", suspicious: "🟠 Suspicious", "likely safe": "🟢 Likely safe" };
 
+// Headers only (before opening) with a low score: we did not see the links or
+// the attachments, so we never say "safe". White, not green: no false reassurance.
+const HEADERS_ONLY_CLEAN = "⚪ No strong sender red flags"; // "strong": small ones (✖ +20) may still show below
+
+function verdictText(result) {
+  if (result.mode === "headers-only" && result.verdict === "likely safe") return HEADERS_ONLY_CLEAN;
+  return VERDICT_LABELS[result.verdict] || result.verdict;
+}
+
 // U+200E is an invisible "left-to-right mark". In Hebrew (right-to-left) Gmail,
 // numbers, brackets and full stops can jump to the wrong side ("Scan .2").
 // ltr() puts a mark on both sides of OUR English text, so it stays in order.
@@ -38,7 +47,7 @@ function cardHeader(subtitle) {
 // Big verdict line + "Score: N out of 100 (estimate)" in ONE string.
 function verdictWidget(result) {
   return CardService.newDecoratedText()
-    .setText("<b>" + (VERDICT_LABELS[result.verdict] || result.verdict) + "</b>")
+    .setText("<b>" + verdictText(result) + "</b>")
     .setBottomLabel(ltr("Score: " + result.score + " out of 100 (estimate)"));
 }
 
@@ -47,6 +56,11 @@ function verdictSection(result) {
   return CardService.newCardSection()
     .addWidget(verdictWidget(result))
     .addWidget(CardService.newTextParagraph().setText(ltr(escapeHtml(summarySentence(result)))));
+}
+
+// Shown under every headers-only result: the check is not complete yet.
+function fullCheckHint() {
+  return CardService.newTextParagraph().setText("<i>" + ltr("Open the email and run the add-on for a full check.") + "</i>");
 }
 
 // ✖ bad sign, ✔ good sign, • information only
