@@ -1,5 +1,5 @@
 // buildDemoMailbox.js
-// Builds 58 FICTIONAL demo emails (about 30 phishing, 8 suspicious, 20 normal) and writes them
+// Builds 50 FICTIONAL demo emails (21 phishing, 9 suspicious, 20 normal) and writes them
 // into seeder/DemoEmails.gs, so the seeder can import them into the TEST Gmail account.
 // Run:  node scripts/buildDemoMailbox.js
 //
