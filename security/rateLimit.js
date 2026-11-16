@@ -6,10 +6,13 @@
 const WINDOW_MS = 60 * 1000;
 
 // Who is the client? The server listens only on 127.0.0.1, so every request
-// comes through the Cloudflare tunnel, which puts the real visitor's IP in
-// the CF-Connecting-IP header. Without the tunnel (local tests) we use req.ip.
+// comes through the tunnel (ngrok), which puts the real visitor's IP first in
+// the X-Forwarded-For header ("visitor, proxy, ..."). We can trust it because
+// nobody can reach the server without the tunnel. Local tests use req.ip.
 function clientKey(req) {
-  return req.get("CF-Connecting-IP") || req.ip;
+  const forwarded = req.get("X-Forwarded-For");
+  if (forwarded) return forwarded.split(",")[0].trim();
+  return req.ip;
 }
 
 function rateLimit(maxPerMinute) {

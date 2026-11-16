@@ -26,7 +26,7 @@ different-looking emails that come from the **same attacker infrastructure** int
  Gmail ── opened email ──► Apps Script add-on (CardService)
                               │  HTTPS + X-API-Key (secret in Script Properties)
                               ▼
-                       Cloudflare tunnel (HTTPS)
+                ngrok tunnel, static domain (HTTPS)
                               │
                               ▼
             Node.js + Express backend (listens on 127.0.0.1 only)
@@ -120,7 +120,7 @@ It **never connects to, scans or probes attacker infrastructure.** This is a del
 
 ## Setup and run
 
-**Requirements:** Node.js 20+ (built with Node 26), a Gmail test account, `cloudflared` for the HTTPS tunnel.
+**Requirements:** Node.js 22 LTS, a Gmail test account, and [ngrok](https://ngrok.com) with a free static domain and its authtoken saved (`ngrok config add-authtoken ...`).
 
 ```bash
 npm install
@@ -131,11 +131,24 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 npm test                 # 28 tests
 npm run demo             # analyze every email in samples/
 npm run campaigns        # print campaigns, impersonation map, sender drift
-npm start                # backend on http://127.0.0.1:3000
-
-# in a second terminal: public HTTPS address for the add-on
-cloudflared tunnel --url http://localhost:3000
+npm run demo:start       # server + ngrok tunnel; prints READY and the public URL
 ```
+
+`npm run demo:start` checks that port 3000 is free, starts the server (`npm start`) and
+`ngrok http --url=debating-plus-sincere.ngrok-free.dev 3000`, prints **READY** only when the
+server answers through the tunnel, and stops both on Ctrl+C.
+
+### Demo startup checklist
+
+1. `npm run demo:start` and wait for **READY**.
+2. Open Gmail on the demo account.
+3. Open an email.
+
+### Why a static tunnel domain
+
+- **The URL stays the same**, so the add-on configuration (`urlFetchWhitelist` and `BACKEND_URL`) does not change before the demo. A quick tunnel gets a new URL on every run.
+- **The server and the data stay on my laptop.** Nothing is deployed to a third-party host.
+- **For production** I would deploy the backend to a managed host with its own domain and HTTPS.
 
 `.env` options: `API_SECRET` (required), `PORT` (default 3000), `INTEL_MODE` = `replay` (default) or `live`.
 
@@ -163,7 +176,7 @@ Without Gmail: `npm run seed-dashboard` fills the dashboard from `samples/` (hea
 - **Demo intel is partly synthetic** (fictional `.example` domains). Live mode works on real domains, but is slower (~6 s per email, crt.sh is often slow), so replay is the default.
 - **The dashboard scan uses headers only**, so link and attachment checks do not run there. This is the price of not sending bodies.
 - **Single user.** The store and sessions are in memory or in a local file, for one mailbox. Restarting the server ends dashboard sessions.
-- **Quick tunnel URL changes** on every restart, and then must be updated in the manifest allow-list and in Script Properties.
+- **The backend runs on my laptop** behind an ngrok tunnel. If the laptop sleeps, the add-on cannot reach it. The free ngrok plan shows a one-time warning page when the dashboard opens in a browser (click *Visit*).
 - **Apps Script limits:** one click may run 30 s, so scans go in chunks (5 selected emails, 50 headers).
 - **No reputation feeds yet** (Safe Browsing / VirusTotal). The provider interface is ready for them.
 

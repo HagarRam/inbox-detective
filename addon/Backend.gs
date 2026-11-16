@@ -3,7 +3,7 @@
 //
 // The backend address and the secret are kept in Script Properties
 // (Project Settings -> Script Properties), never in the code or in Git:
-//   BACKEND_URL  e.g. https://something.trycloudflare.com
+//   BACKEND_URL  e.g. https://debating-plus-sincere.ngrok-free.dev
 //   API_KEY      the same value as API_SECRET in the server's .env
 
 // The server refuses bodies over 5 MB, so we stop a bit earlier.
@@ -25,7 +25,8 @@ function postToBackend(path, body) {
   const response = UrlFetchApp.fetch(config.url + path, {
     method: "post",
     contentType: "application/json",
-    headers: { "X-API-Key": config.key },
+    // The second header tells ngrok (free plan) to skip its "you are about to visit" page.
+    headers: { "X-API-Key": config.key, "ngrok-skip-browser-warning": "1" },
     payload: JSON.stringify(body),
     muteHttpExceptions: true, // let us read the status code instead of crashing
     followRedirects: false, // never follow the request somewhere else

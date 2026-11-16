@@ -9,7 +9,7 @@
 // - Rate limiting: at most 120 requests per minute per client.
 // - Safe headers on every answer, and errors never reveal internal details.
 // - The server listens only on 127.0.0.1: it is reachable from outside ONLY
-//   through the HTTPS tunnel, never directly.
+//   through the HTTPS tunnel (ngrok), never directly.
 // - We never store the email. We analyze it in memory and forget it.
 
 require("dotenv").config();
@@ -81,7 +81,16 @@ app.use(errorHandler);
 // not when a test file imports the app.
 if (require.main === module) {
   const port = process.env.PORT || 3000;
-  app.listen(port, "127.0.0.1", () => {
+  app.listen(port, "127.0.0.1", (err) => {
+    // In Express 5 this callback also runs when the server could NOT start.
+    if (err) {
+      if (err.code === "EADDRINUSE") {
+        console.error(`Port ${port} is already in use. Run: lsof -i :${port} and kill the PID`);
+      } else {
+        console.error("Could not start the server: " + err.message);
+      }
+      process.exit(1); // exit code 1 = "failed"
+    }
     console.log(`Server running on http://localhost:${port}`);
   });
 }
