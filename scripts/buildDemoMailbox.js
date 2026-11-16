@@ -1,5 +1,5 @@
 // buildDemoMailbox.js
-// Builds 50 FICTIONAL demo emails (about 30 phishing, 20 normal) and writes them
+// Builds 58 FICTIONAL demo emails (about 30 phishing, 8 suspicious, 20 normal) and writes them
 // into seeder/DemoEmails.gs, so the seeder can import them into the TEST Gmail account.
 // Run:  node scripts/buildDemoMailbox.js
 //
@@ -27,8 +27,9 @@ function headerLines(e, index) {
     "Date: " + new Date(e.date).toUTCString().replace("GMT", "+0000"),
     "Message-ID: <demo-" + index + "@inbox-detective.example>",
     "X-Inbox-Detective-Demo: fictional demo email",
-    "Authentication-Results: " + authLine(e.auth, mailFrom, fromDomain),
   ];
+  // auth "none": no Authentication-Results at all (Gmail could not confirm the sender).
+  if (e.auth !== "none") lines.push("Authentication-Results: " + authLine(e.auth, mailFrom, fromDomain));
   if (e.replyTo) lines.push("Reply-To: <" + e.replyTo + ">");
   if (e.returnPath) lines.push("Return-Path: <" + e.returnPath + ">");
   lines.push("MIME-Version: 1.0");
