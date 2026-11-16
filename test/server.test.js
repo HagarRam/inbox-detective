@@ -42,8 +42,8 @@ test("sends safe headers and hides that it runs Express", async () => {
 
 test("blocks a client that sends too many requests", async () => {
   let last;
-  for (let i = 0; i < 125; i++) last = await fetch(base + "/", { headers: { "CF-Connecting-IP": "203.0.113.9" } });
+  for (let i = 0; i < 125; i++) last = await fetch(base + "/", { headers: { "X-Forwarded-For": "203.0.113.9" } });
   assert.strictEqual(last.status, 429);
-  const other = await fetch(base + "/", { headers: { "CF-Connecting-IP": "203.0.113.10" } });
+  const other = await fetch(base + "/", { headers: { "X-Forwarded-For": "203.0.113.10" } });
   assert.strictEqual(other.status, 200); // a different client is not affected
 });

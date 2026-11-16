@@ -49,18 +49,16 @@ One add-on with two screens:
 
 ## Setup (test deployment)
 
-1. Start the backend: `node server.js` (with `API_SECRET` set in `.env`).
-2. Expose it over HTTPS: `cloudflared tunnel --url http://localhost:3000`
-   and copy the `https://....trycloudflare.com` address.
-3. Go to https://script.google.com with the **test** Gmail account, create a new project.
-4. Project Settings: tick "Show appsscript.json manifest file in editor".
-5. Create the `.gs` files listed above and paste the content from this folder.
+1. Start the backend and the tunnel: `npm run demo:start` (see the main README) and wait for **READY**.
+   The public address is always `https://debating-plus-sincere.ngrok-free.dev` (an ngrok static domain).
+2. Go to https://script.google.com with the **test** Gmail account, create a new project.
+3. Project Settings: tick "Show appsscript.json manifest file in editor".
+4. Create the `.gs` files listed above and paste the content from this folder.
    Under Services, add the **Gmail API** (this turns the API on for the project).
-   Paste `appsscript.json` and replace `REPLACE-WITH-YOUR-BACKEND-HOST` with the tunnel host.
-6. Project Settings -> Script Properties: add `BACKEND_URL` (the tunnel address, no `/` at the end)
-   and `API_KEY` (same value as `API_SECRET`).
-7. Deploy -> Test deployments -> Google Workspace Add-on -> Install.
-8. Open Gmail (refresh), click the add-on icon in the side panel, and authorize.
+   Paste `appsscript.json` as is: its `urlFetchWhitelist` already allows the ngrok domain and the Gmail API.
+5. Project Settings -> Script Properties: add `BACKEND_URL` = `https://debating-plus-sincere.ngrok-free.dev`
+   (no `/` at the end) and `API_KEY` (same value as `API_SECRET` in `.env`).
+6. Deploy -> Test deployments -> Google Workspace Add-on -> Install.
+7. Open Gmail (refresh), click the add-on icon in the side panel, and authorize.
 
-Note: a quick tunnel gets a new address every time it starts. Then update both
-the manifest allow-list and `BACKEND_URL`.
+Because the domain is static, steps 4-5 are done once. Before a demo, only step 1 is needed.
