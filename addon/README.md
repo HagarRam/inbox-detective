@@ -10,8 +10,11 @@ One add-on with two screens:
   The scan fetches only the **sender headers** (`format=metadata`), sends them to
   `POST /analyze-headers`, 5 per click (the rest stay ticked). Scanned emails leave the list and
   an alert with a red *View results* button opens the **Scan overview**: counts, checked / not
-  checked, *Needs your attention* (highest score first, tap = details + "If you had clicked"),
-  *Scan the rest*, *Back to list*.
+  checked, 🔴 / 🟠 / 🟢 groups with each email's score and main reason (tap = details +
+  "If you had clicked"), *Scan the rest*, *Back to list*.
+  Above the list: *"Checked 12 of 50 unread emails"*. Under the buttons: **Already scanned**
+  (the scanned emails with their tags, a tap opens the details, and its own search that also
+  finds scanned emails you have opened since). Menu (⋮): *Reset scan history* forgets all scans.
 - **Opening an email that was flagged before opening:** the first section is a warning
   ("⛔ WARNING: you were warned before opening this email", "Pre-open check: Dangerous, score N").
   Gmail cannot pop up or block opening; the warning is in the side panel.
@@ -29,15 +32,15 @@ One add-on with two screens:
 | `appsscript.json` | Manifest: name, scopes, allowed URLs, the two triggers |
 | `Code.gs` | Runs when an email is opened |
 | `Homepage.gs` | Home screen: builds the card and handles every click |
-| `ScannerCard.gs` | Search field, rows with result tags, ‹ Page N ›, buttons, details card |
-| `Overview.gs` | The Scan overview card: counts, checked / not checked, needs attention, Scan the rest |
-| `EmailList.gs` | One page of 25 emails (inbox or search), sender name, subject, date |
-| `ScanState.gs` | Memory between clicks: current page, scan queue, result tags (User Properties) |
+| `ScannerCard.gs` | Search field, alert, rows, Previous / Next, buttons, Already scanned, details card |
+| `Overview.gs` | The Scan overview card: counts, 🔴 / 🟠 / 🟢 groups with reasons, how to read it, Scan the rest |
+| `EmailList.gs` | Unread inbox emails (or a search): ids, then sender name, subject, date for the shown page |
+| `ScanState.gs` | Memory between clicks (User Properties): page, scan queue, results, Reset scan history |
 | `Scanner.gs` | Scans emails from their headers only, 5 per click |
 | `GmailApi.gs` | Small read-only helpers for the Gmail API |
 | `MailboxScan.gs` | Scans the mailbox in chunks of 50, headers only |
 | `Backend.gs` | Calls the backend (analyze, scan batch, dashboard token) |
-| `Cards.gs` | Builds the result card (verdict line, findings, primary button) |
+| `Cards.gs` | The opened-email card: pre-open warning, subject, verdict, findings, dashboard button |
 | `Scenario.gs` | Shows the "If you had clicked" section the server sends (facts, steps, protections) |
 | `Summary.gs` | One plain-English summary sentence, built from fixed phrases |
 | `Errors.gs` | Turns technical errors into short, friendly messages |
