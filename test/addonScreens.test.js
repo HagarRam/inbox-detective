@@ -179,3 +179,30 @@ test("overview (e): more than 10 emails in a group adds '+N more in the dashboar
   assert.ok(allText(red).includes("+3 more in the dashboard"));
   assert.strictEqual(plain(last(rowsOf(red)[0], "setBottomLabel")), "Score 72 · DMARC failed"); // highest score first
 });
+
+// ---- Progress and "Already scanned" ----
+
+test("progress: 'Checked 2 of 30 unread emails', and the scanned ones go to 'Already scanned'", () => {
+  const all = [];
+  for (let i = 0; i < 30; i++) all.push("m" + i);
+  props.SCAN_CHIPS = JSON.stringify({ m0: { verdict: "malicious", score: 95 }, m5: { verdict: "likely safe", score: 0 } });
+  props.LIST_STATE = JSON.stringify({ query: "", page: 0, next: "" });
+  sandbox.listPage = () => ({ ids: all, nextPageToken: "" });
+  sandbox.getRows = (ids) => ids.map((id) => ({ id, sender: "S " + id, subject: "Subject " + id, date: "" }));
+  const page = sandbox.loadPageRows();
+  assert.strictEqual(page.length, 25);
+  assert.strictEqual(sandbox.progressLine(JSON.parse(props.LIST_STATE)), "Checked 2 of 30 unread emails");
+  assert.deepStrictEqual(JSON.parse(props.SCANNED_ROWS).map((r) => r.id), ["m0", "m5"]);
+  assert.strictEqual(sandbox.progressLine({ total: 0 }), "");
+});
+
+test("'Already scanned' rows show their tag and open the details with a tap", () => {
+  const rows = [{ id: "m0", sender: "Bank", subject: "Urgent" }];
+  const chips = { m0: { verdict: "malicious", score: 95 } };
+  const section = sandbox.alreadyScannedSection(rows, chips, { checked: 3 });
+  assert.strictEqual(plain(last(section, "setHeader")), "Already scanned");
+  const row = rowsOf(section)[0];
+  assert.strictEqual(plain(last(row, "setBottomLabel")), "🔴 Dangerous · 95");
+  assert.strictEqual(last(last(row, "setOnClickAction"), "setFunctionName"), "onRowClick");
+  assert.ok(allText(section).join(" ").includes("+2 more"));
+});

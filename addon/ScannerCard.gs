@@ -134,6 +134,35 @@ function pagerWidgets(state) {
   return [CardService.newButtonSet().addButton(previous).addButton(next), textLine(ltr("Page " + (state.page + 1)))];
 }
 
+// ---- Progress and "Already scanned" ----
+
+// "Checked 12 of 50 unread emails", or "" when there are no unread emails.
+function progressLine(state) {
+  if (!state.total) return "";
+  return "Checked " + (state.checked || 0) + " of " + state.total + " unread " + (state.total === 1 ? "email" : "emails");
+}
+
+// One scanned email: sender, subject, its tag. A tap opens the details card (not the email).
+function scannedRow(row, chip) {
+  return CardService.newDecoratedText()
+    .setTopLabel(escapeHtml(row.sender))
+    .setText(escapeHtml(row.subject))
+    .setBottomLabel(ltr(chipText(chip)))
+    .setWrapText(false)
+    .setOnClickAction(rowClickAction(row.id));
+}
+
+// The emails that were already scanned (newest first, at most MAX_ALREADY_SCANNED),
+// and "+N more" when there are more.
+function alreadyScannedSection(rows, chips, state) {
+  const section = CardService.newCardSection().setHeader(ltr("Already scanned"));
+  if (rows.length === 0) return section.addWidget(textLine('<font color="' + GREY + '">' + ltr("Nothing scanned yet.") + "</font>"));
+  for (const row of rows) section.addWidget(scannedRow(row, chips[row.id]));
+  const more = (state.checked || 0) - rows.length;
+  if (more > 0) section.addWidget(textLine('<font color="' + GREY + '">' + ltr("+" + more + " more") + "</font>"));
+  return section;
+}
+
 // ---- The buttons ----
 
 function scanButton(tickedCount) {
