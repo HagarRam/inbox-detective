@@ -205,7 +205,6 @@ main { display: flex; flex-direction: column; gap: 24px; padding-top: 24px; padd
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border); vertical-align: top; word-break: break-word; }
 th { white-space: nowrap; color: var(--muted); font-size: 12px; font-weight: 600; }
-#drift li { word-break: break-word; }
 .who { font-weight: 600; font-size: 12px; color: var(--accent-text); }
 .vis-tooltip {
   position: absolute; background: var(--surface); color: var(--text); border: 1px solid var(--border);
