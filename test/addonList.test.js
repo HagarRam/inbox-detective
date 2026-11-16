@@ -54,3 +54,17 @@ test("the search text is escaped before it is shown", () => {
   assert.strictEqual(title, 'Results for "&lt;b&gt;x&lt;/b&gt;"');
   assert.strictEqual(plain(sandbox.listTitle({ query: "", page: 1 })), "Latest inbox emails (page 2)");
 });
+
+test("the warning box: red for Malicious, orange for Suspicious, none otherwise", () => {
+  // A tiny stand-in for Google's CardService: it only remembers the text of the box.
+  let shown = "";
+  sandbox.CardService = {
+    newTextParagraph: () => ({ setText: (text) => { shown = text; return {}; } }),
+    newCardSection: () => ({ addWidget: () => "section" }),
+  };
+  assert.strictEqual(sandbox.warningSection({ verdict: "malicious" }), "section");
+  assert.ok(plain(shown).includes("⛔ DANGEROUS EMAIL") && shown.includes("#c5221f"));
+  assert.strictEqual(sandbox.warningSection({ verdict: "suspicious" }), "section");
+  assert.ok(plain(shown).includes("⚠ BE CAREFUL") && shown.includes("#b06000"));
+  assert.strictEqual(sandbox.warningSection({ verdict: "likely safe" }), null);
+});

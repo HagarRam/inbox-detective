@@ -82,18 +82,37 @@ function listTitle(state) {
   return ltr("Results for \"" + escapeHtml(shorten(state.query, 50)) + "\"" + page);
 }
 
-// The card for one tapped row: verdict, all the reasons, and the "full check" hint.
+// The words of the warning box. Fixed text, never taken from the email.
+const WARNINGS = {
+  malicious: { color: "#c5221f", title: "⛔ DANGEROUS EMAIL", text: "Do not open it, do not click its links and do not reply. Delete it or report it." },
+  suspicious: { color: "#b06000", title: "⚠ BE CAREFUL", text: "This email may be dangerous. Do not click its links or open its attachments until you are sure who sent it." },
+};
+
+// A clear box at the top of the details card. Color + symbol + words (never color alone).
+function warningSection(result) {
+  const warning = WARNINGS[result.verdict];
+  if (!warning) return null;
+  const text = '<font color="' + warning.color + '"><b>' + ltr(warning.title) + "</b></font><br>" + ltr(warning.text);
+  return CardService.newCardSection().addWidget(CardService.newTextParagraph().setText(text));
+}
+
+// The card for one tapped row: the warning box, verdict, all the reasons.
 function buildDetailsCard(scan) {
   const card = CardService.newCardBuilder().setHeader(cardHeader(ltr("Before opening: sender check")));
   if (scan.error) {
     const text = CardService.newTextParagraph().setText(ltr("⚠ " + escapeHtml(friendlyError(scan.error))));
     return card.addSection(CardService.newCardSection().addWidget(text)).build();
   }
-  const subject = CardService.newTextParagraph().setText("<b>" + escapeHtml(shorten(scan.result.subject || "(no subject)", 80)) + "</b>");
+  const result = scan.result;
+  const warning = warningSection(result);
+  if (warning) card.addSection(warning);
+  const subject = CardService.newTextParagraph().setText("<b>" + escapeHtml(shorten(result.subject || "(no subject)", 80)) + "</b>");
+  const verdict = verdictSection(result);
+  if (result.verdict !== "malicious") verdict.addWidget(fullCheckHint(result)); // the red box already says "do not open"
   return card
     .addSection(CardService.newCardSection().addWidget(subject))
-    .addSection(verdictSection(scan.result).addWidget(fullCheckHint(scan.result)))
-    .addSection(findingsSection(scan.result.findings))
+    .addSection(verdict)
+    .addSection(findingsSection(result.findings))
     .setFixedFooter(dashboardFooter())
     .build();
 }
