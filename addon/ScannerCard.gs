@@ -134,7 +134,7 @@ function tickAllButton() {
 }
 
 function dashboardButton() {
-  return filledButton("Open dashboard", "onOpenDashboardClick", PURPLE);
+  return filledButton("📊  Open dashboard", "onOpenDashboardClick", PURPLE); // the emoji makes it stand out (we cannot set a font size)
 }
 
 // The words of the warning box. Fixed text, never taken from the email.
