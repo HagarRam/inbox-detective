@@ -1,15 +1,21 @@
 // EmailList.gs
-// The list of emails on the home screen: one page of 25, from the inbox or from a search.
+// The list of emails on the home screen: one page of 25 unread inbox emails (or a search).
 // For each email we read only From, Subject, the date and "unread". Never the body.
 
 const PAGE_SIZE = 25;
 
-// One page of email ids. query "" = the inbox; otherwise a Gmail search, e.g. "from:paypal".
-// pageToken comes from Gmail and points to the next page ("" = the first page).
+// The Gmail search for the list: inbox, unread only (unless "Show read emails too"),
+// plus the user's own search text, e.g. "in:inbox is:unread from:paypal".
+function listQuery(state) {
+  let query = "in:inbox";
+  if (!state.showRead) query += " is:unread"; // opened emails do not need a check before opening
+  if (state.query) query += " " + state.query;
+  return query;
+}
+
+// One page of email ids for a Gmail search. pageToken points to the page ("" = the first).
 function listPage(query, pageToken, max) {
-  let path = "/messages?maxResults=" + max;
-  if (query) path += "&q=" + encodeURIComponent(query);
-  else path += "&labelIds=INBOX";
+  let path = "/messages?maxResults=" + max + "&q=" + encodeURIComponent(query);
   if (pageToken) path += "&pageToken=" + encodeURIComponent(pageToken);
   const result = gmailGet(path);
   const ids = [];
@@ -58,12 +64,4 @@ function shortDate(milliseconds) {
   const zone = Session.getScriptTimeZone();
   const today = Utilities.formatDate(new Date(), zone, "yyyy-MM-dd") === Utilities.formatDate(date, zone, "yyyy-MM-dd");
   return Utilities.formatDate(date, zone, today ? "HH:mm" : "MMM d");
-}
-
-// The ids of the emails that arrived today (since midnight), at most 50.
-function listTodayIds() {
-  const midnight = new Date();
-  midnight.setHours(0, 0, 0, 0);
-  const seconds = Math.floor(midnight.getTime() / 1000);
-  return listPage("in:inbox after:" + seconds, "", 50).ids; // Gmail search understands "after:<seconds>"
 }

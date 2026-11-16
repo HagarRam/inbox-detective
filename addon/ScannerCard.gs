@@ -1,9 +1,7 @@
 // ScannerCard.gs
-// How the "check before opening" part of the home screen looks:
-// a search box, one row per email (checkbox + result tag), the scan buttons, Previous / Next.
+// How the "check before opening" part of the home screen looks, in 3 steps:
+// Step 1 find (search + "show read"), Step 2 tick (rows + Page N), Step 3 scan (buttons).
 // It only BUILDS widgets; the clicks are handled in Homepage.gs.
-
-const SEARCH_HINT = "Search mail, for example from:paypal or newer_than:7d";
 
 // A plain button that runs one function of the add-on.
 function actionButton(text, functionName) {
@@ -12,14 +10,55 @@ function actionButton(text, functionName) {
     .setOnClickAction(CardService.newAction().setFunctionName(functionName));
 }
 
-// The search box with Search and Clear.
-function searchWidgets(query) {
-  const input = CardService.newTextInput().setFieldName("query").setTitle("Search").setHint(SEARCH_HINT);
-  if (query) input.setValue(query);
-  const buttons = CardService.newButtonSet()
-    .addButton(actionButton("Search", "onSearchClick"))
-    .addButton(actionButton("Clear", "onClearClick"));
-  return [input, buttons];
+// A short paragraph of our own text.
+function textLine(html) {
+  return CardService.newTextParagraph().setText(html);
+}
+
+// Step 1: one search field, "Search", "Clear search" (only while searching), "Show read emails too".
+function findSection(state) {
+  const input = CardService.newTextInput().setFieldName("query").setTitle("Search").setHint("e.g. from:paypal");
+  if (state.query) input.setValue(state.query);
+  const buttons = CardService.newButtonSet().addButton(actionButton("Search", "onSearchClick"));
+  if (state.query) buttons.addButton(actionButton("Clear search", "onClearClick"));
+  const toggle = CardService.newSwitch().setFieldName("show_read").setValue("on").setSelected(state.showRead)
+    .setOnChangeAction(CardService.newAction().setFunctionName("onShowReadChange"));
+  const showRead = CardService.newDecoratedText().setText(ltr("Show read emails too")).setSwitchControl(toggle);
+  return CardService.newCardSection().setHeader(ltr("Step 1: Find emails"))
+    .addWidget(input).addWidget(buttons).addWidget(showRead);
+}
+
+// Step 2: "Page N" + Previous / Next, the rows, and again "Page N" + Previous / Next.
+function listSection(state, rows, tickAll) {
+  const section = CardService.newCardSection().setHeader(ltr("Step 2: Tick the emails to check"));
+  section.addWidget(textLine("<b>" + listTitle(state) + "</b>"));
+  if (rows.length === 0) return section.addWidget(textLine(ltr(emptyText(state))));
+  addPaging(section, state);
+  const chips = getChips();
+  for (const row of rows) section.addWidget(emailRow(row, chips[row.id], tickAll));
+  addPaging(section, state);
+  return section;
+}
+
+function emptyText(state) {
+  if (state.query) return "No emails match this search.";
+  if (!state.showRead) return "No unread emails. Turn on \"Show read emails too\" to see the others.";
+  return "Your inbox is empty.";
+}
+
+function addPaging(section, state) {
+  const buttons = pagingButtons(state);
+  if (buttons) section.addWidget(textLine(ltr("Page " + (state.page + 1)))).addWidget(buttons);
+}
+
+// Step 3: the buttons, and one line that says what they do.
+function scanSection(queue) {
+  const scan = actionButton("Scan ticked emails", "onScanSelectedClick").setTextButtonStyle(CardService.TextButtonStyle.FILLED);
+  const buttons = CardService.newButtonSet().addButton(scan).addButton(actionButton("Tick all (this page)", "onTickAllClick"));
+  if (queue.ids.length > 0) buttons.addButton(actionButton("Continue scan (" + queue.ids.length + " left)", "onContinueScanClick"));
+  buttons.addButton(actionButton("Scan overview", "onOverviewClick"));
+  const help = "<i>" + ltr("Scan ticked emails checks only their sender headers (5 per click) and then shows the Scan overview.") + "</i>";
+  return CardService.newCardSection().setHeader(ltr("Step 3: Scan")).addWidget(buttons).addWidget(textLine(help));
 }
 
 // "Not scanned yet" or e.g. "🔴 Malicious · Score: 95 out of 100 (estimate)".
@@ -35,6 +74,11 @@ function isFlagged(chip) {
   return Boolean(chip) && chip.verdict !== "likely safe";
 }
 
+// Tapping a Suspicious / Malicious row opens its details card.
+function rowClickAction(id) {
+  return CardService.newAction().setFunctionName("onRowClick").setParameters({ id: id });
+}
+
 // One email: sender name on top, subject (bold = unread), date and result tag below.
 // The sender and subject come from the email (attacker text), so they are escaped.
 function emailRow(row, chip, ticked) {
@@ -45,8 +89,7 @@ function emailRow(row, chip, ticked) {
     .setBottomLabel(ltr(row.date + " · " + chipText(chip) + (isFlagged(chip) ? " · tap for details" : "")))
     .setWrapText(true);
   if (isFlagged(chip)) {
-    const open = CardService.newAction().setFunctionName("onRowClick").setParameters({ id: row.id });
-    return widget.setOnClickAction(open);
+    return widget.setOnClickAction(rowClickAction(row.id));
   }
   const box = CardService.newSwitch()
     .setControlType(CardService.SwitchControlType.CHECK_BOX)
@@ -54,16 +97,6 @@ function emailRow(row, chip, ticked) {
     .setValue(row.id)
     .setSelected(ticked);
   return widget.setSwitchControl(box);
-}
-
-// "Scan selected", "Select all unread", "Scan today's emails" (+ "Continue scan" while a scan is running).
-function scanButtons(queue) {
-  const buttons = CardService.newButtonSet()
-    .addButton(actionButton("Scan selected", "onScanSelectedClick"))
-    .addButton(actionButton("Select all unread", "onSelectUnreadClick"))
-    .addButton(actionButton("Scan today's emails", "onScanTodayClick"));
-  if (queue.ids.length > 0) buttons.addButton(actionButton("Continue scan (" + queue.ids.length + " left)", "onContinueScanClick"));
-  return buttons;
 }
 
 // Previous / Next, only the ones that make sense. null when there is only one page.
@@ -77,9 +110,9 @@ function pagingButtons(state) {
 
 // The line above the rows: which list this is. The search text is the user's, but we still escape it.
 function listTitle(state) {
-  const page = state.page > 0 ? " (page " + (state.page + 1) + ")" : "";
-  if (!state.query) return ltr("Latest inbox emails" + page);
-  return ltr("Results for \"" + escapeHtml(shorten(state.query, 50)) + "\"" + page);
+  const which = state.showRead ? "Inbox emails" : "Unread inbox emails";
+  if (!state.query) return ltr(which);
+  return ltr(which + " matching \"" + escapeHtml(shorten(state.query, 50)) + "\"");
 }
 
 // The words of the warning box. Fixed text, never taken from the email.

@@ -1,6 +1,7 @@
 // ScanState.gs
 // A small memory between clicks, in User Properties (only this user can see it):
-//   LIST_STATE  which list is shown: the search text and the page
+//   LIST_STATE  which list is shown: the search text, "show read" and the page
+//   PAGE_ROWS   sender and subject of the emails on the shown page (for the Scan overview)
 //   SCAN_QUEUE  the emails still waiting to be scanned (5 per click)
 //   SCAN_CHIPS  the last result of each scanned email, for the tag on its row
 
@@ -15,10 +16,14 @@ function saveJson(key, value) {
   PropertiesService.getUserProperties().setProperty(key, JSON.stringify(value));
 }
 
-// { query, tokens, page, next }: tokens[page] is Gmail's token for the shown page
-// ("" for page 1), next is the token for the page after it.
+// { query, showRead, tokens, page, next }: tokens[page] is Gmail's token for the shown
+// page ("" for page 1), next is the token for the page after it.
+function newListState(query, showRead) {
+  return { query: query, showRead: showRead, tokens: [""], page: 0, next: "" };
+}
+
 function getListState() {
-  return readJson("LIST_STATE", { query: "", tokens: [""], page: 0, next: "" });
+  return readJson("LIST_STATE", newListState("", false));
 }
 
 function saveListState(state) {
@@ -46,4 +51,15 @@ function saveChip(id, result) {
   const ids = Object.keys(chips);
   for (let i = 0; i < ids.length - MAX_CHIPS; i++) delete chips[ids[i]]; // forget the oldest
   saveJson("SCAN_CHIPS", chips);
+}
+
+// The emails of the shown page, short: [{ id, sender, subject }]
+function savePageRows(rows) {
+  saveJson("PAGE_ROWS", rows.map(function (row) {
+    return { id: row.id, sender: shorten(row.sender, 40), subject: shorten(row.subject, 70) };
+  }));
+}
+
+function getPageRows() {
+  return readJson("PAGE_ROWS", []);
 }
