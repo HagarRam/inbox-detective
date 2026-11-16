@@ -1,7 +1,7 @@
 // Homepage.gs
 // The add-on "home screen": shown when NO email is open. Top to bottom:
 //   search -> alert after a scan ("View results") -> "Unread emails" (not scanned yet, tick them)
-//   -> Previous / Next, Page N -> "Scan N ticked emails" -> "Tick all on this page"
+//   -> Previous / Next, Page N -> "Scan N ticked emails" -> "Select all"
 //   -> "Already scanned" (with their tags; a tap opens the details, not the email).
 // "Open dashboard" is in the fixed footer, so it is always visible without scrolling.
 // The card menu (the three dots) has the whole-mailbox scan and "Reset scan history".
@@ -86,7 +86,7 @@ function listSection(rows, ticked) {
   return section;
 }
 
-// Each button in its own row: Scan, then Tick all under it.
+// Each button in its own row: Scan, then "Select all" under it.
 function actionsSection(tickedCount) {
   return CardService.newCardSection()
     .addWidget(scanButton(tickedCount))
