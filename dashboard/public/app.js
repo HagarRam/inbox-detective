@@ -121,17 +121,6 @@ function drawCampaigns(campaigns) {
   for (const campaign of campaigns) box.appendChild(drawCampaign(campaign));
 }
 
-function drawDrift(drift) {
-  const box = document.getElementById("drift");
-  if (drift.length === 0) return showEmpty(box, "No sender drift found.");
-  for (const d of drift) {
-    box.appendChild(el("strong", '"' + d.name + '"'));
-    const list = el("ul");
-    for (const h of d.history) list.appendChild(el("li", (h.firstSeen || "").slice(0, 10) + "  " + h.domain + "  [" + h.infrastructure + "]"));
-    box.appendChild(list);
-  }
-}
-
 function drawRecommendations(tips) {
   const list = document.getElementById("recommendations");
   if (tips.length === 0) return showEmpty(list, "Nothing to recommend yet.");
@@ -157,7 +146,6 @@ async function main() {
   drawVisuals(data);
   drawCampaigns(data.campaigns);
   drawSenders(data.riskiestSenders);
-  drawDrift(data.senderDrift);
   drawImpersonation(data.impersonation);
   drawRecommendations(data.recommendations);
   document.body.classList.remove("loading"); // hide the loading placeholders

@@ -110,7 +110,7 @@ test("(d) the pager: Previous off on page 1, Next off on the last page", () => {
 test("(e) every button has the right words, style, color and state", () => {
   assert.deepStrictEqual(looks(sandbox.scanButton(0)), ["Scan ticked emails", "FILLED", "#1a73e8", false]);
   assert.deepStrictEqual(looks(sandbox.scanButton(3)), ["Scan 3 ticked emails", "FILLED", "#1a73e8", false]);
-  assert.deepStrictEqual(looks(sandbox.tickAllButton()), ["Tick all on this page", "TEXT", undefined, false]);
+  assert.deepStrictEqual(looks(sandbox.tickAllButton()), ["Select all", "TEXT", undefined, false]);
   assert.deepStrictEqual(looks(sandbox.dashboardButton()), ["📊  Open dashboard", "FILLED", "#673ab7", false]);
   assert.deepStrictEqual(looks(sandbox.viewResultsButton()), ["View results", "FILLED", "#c5221f", false]);
   assert.deepStrictEqual(looks(sandbox.scanRestButton()), ["Scan the rest", "FILLED", "#1a73e8", false]);
@@ -199,10 +199,36 @@ test("progress: 'Checked 2 of 30 unread emails', and the scanned ones go to 'Alr
 test("'Already scanned' rows show their tag and open the details with a tap", () => {
   const rows = [{ id: "m0", sender: "Bank", subject: "Urgent" }];
   const chips = { m0: { verdict: "malicious", score: 95 } };
-  const section = sandbox.alreadyScannedSection(rows, chips, { checked: 3 });
+  const section = sandbox.alreadyScannedSection(rows, chips, { scannedCount: 3 });
   assert.strictEqual(plain(last(section, "setHeader")), "Already scanned");
   const row = rowsOf(section)[0];
   assert.strictEqual(plain(last(row, "setBottomLabel")), "🔴 Dangerous · 95");
   assert.strictEqual(last(last(row, "setOnClickAction"), "setFunctionName"), "onRowClick");
   assert.ok(allText(section).join(" ").includes("+2 more"));
+});
+
+test("'Reset scan history' forgets every scan, so all unread emails show again", () => {
+  props.SCAN_CHIPS = JSON.stringify({ m0: { verdict: "malicious", score: 95 } });
+  props.LAST_SCAN = JSON.stringify([{ id: "m0" }]);
+  props.SCAN_QUEUE = JSON.stringify({ ids: ["m1"] });
+  sandbox.PropertiesService = { getUserProperties: () => ({ getProperty: (k) => props[k] || null, setProperty: (k, v) => { props[k] = v; }, deleteProperty: (k) => { delete props[k]; } }) };
+  sandbox.resetScanHistory();
+  assert.deepStrictEqual(Object.keys(sandbox.getChips()), []);
+  assert.strictEqual(sandbox.getLastScan().length, 0);
+  assert.strictEqual(sandbox.getQueue().ids.length, 0);
+});
+
+test("'Already scanned' has its own search: it looks in the whole inbox, only scanned emails", () => {
+  props.SCAN_CHIPS = JSON.stringify({ p1: { verdict: "malicious", score: 95 }, p3: { verdict: "suspicious", score: 40 } });
+  props.LIST_STATE = JSON.stringify({ query: "", page: 0, next: "", scannedQuery: "from:paypal" });
+  const asked = [];
+  sandbox.listPage = (query) => { asked.push(query); return { ids: query.includes("from:paypal") ? ["p1", "p2", "p3"] : ["u1"], nextPageToken: "" }; };
+  sandbox.getRows = (ids) => ids.map((id) => ({ id, sender: "S", subject: "x", date: "" }));
+  sandbox.loadPageRows();
+  assert.ok(asked.includes("in:inbox from:paypal")); // read emails too, not only unread
+  assert.deepStrictEqual(JSON.parse(props.SCANNED_ROWS).map((r) => r.id), ["p1", "p3"]); // p2 was never scanned
+  const empty = sandbox.alreadyScannedSection([], {}, { scannedQuery: "from:nobody" });
+  assert.ok(allText(empty).join(" ").includes("No scanned emails match this search."));
+  const input = empty.calls.find((c) => c[0] === "addWidget")[1][0];
+  assert.strictEqual(last(input, "setFieldName"), "scanned_query");
 });

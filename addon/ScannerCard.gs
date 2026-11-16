@@ -152,13 +152,27 @@ function scannedRow(row, chip) {
     .setOnClickAction(rowClickAction(row.id));
 }
 
+// The search field of "Already scanned". It searches the whole inbox (read emails too).
+function scannedSearchInput(query) {
+  const input = CardService.newTextInput()
+    .setFieldName("scanned_query")
+    .setHint("Search scanned emails, e.g. from:paypal")
+    .setOnChangeAction(CardService.newAction().setFunctionName("onScannedSearchClick"));
+  if (query) input.setValue(query);
+  return input;
+}
+
 // The emails that were already scanned (newest first, at most MAX_ALREADY_SCANNED),
-// and "+N more" when there are more.
+// a search field, and "+N more" when there are more.
 function alreadyScannedSection(rows, chips, state) {
   const section = CardService.newCardSection().setHeader(ltr("Already scanned"));
-  if (rows.length === 0) return section.addWidget(textLine('<font color="' + GREY + '">' + ltr("Nothing scanned yet.") + "</font>"));
+  section.addWidget(scannedSearchInput(state.scannedQuery));
+  if (rows.length === 0) {
+    const empty = state.scannedQuery ? "No scanned emails match this search." : "Nothing scanned yet.";
+    return section.addWidget(textLine('<font color="' + GREY + '">' + ltr(empty) + "</font>"));
+  }
   for (const row of rows) section.addWidget(scannedRow(row, chips[row.id]));
-  const more = (state.checked || 0) - rows.length;
+  const more = (state.scannedCount || 0) - rows.length;
   if (more > 0) section.addWidget(textLine('<font color="' + GREY + '">' + ltr("+" + more + " more") + "</font>"));
   return section;
 }
@@ -171,7 +185,7 @@ function scanButton(tickedCount) {
 }
 
 function tickAllButton() {
-  return textButton("Tick all on this page", "onTickAllClick");
+  return textButton("Select all", "onTickAllClick");
 }
 
 function dashboardButton() {

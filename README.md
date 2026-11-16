@@ -14,11 +14,11 @@ different-looking emails that come from the **same attacker infrastructure** int
 
 | Layer | What the user sees |
 |---|---|
-| **Open email** | Side-panel card: score 0-100, verdict (🟢 likely safe / 🟠 suspicious / 🔴 malicious), every finding with its points and a plain-language explanation. Good signals (e.g. SPF/DKIM/DMARC pass) are shown too. |
-| **Check before opening** | Home screen: a search field (Enter), the **unread** inbox emails that were **not scanned yet** (25 per page, a checkbox each, *Previous / Next*), a blue *Scan N ticked emails* button (*Tick all on this page* under it) and a purple *Open dashboard* button fixed at the bottom of the panel. Only the sender headers are checked (authentication, Reply-To, display name, domain age), 5 per click. Scanned emails leave the list, and an alert appears: *"⛔ 2 dangerous, 1 suspicious emails need attention"* with a red *View results* button. The **Scan overview** shows the counts, what was checked and what was not, the emails that need attention (highest score first, tap for details and "If you had clicked"), and *Scan the rest*. If you later **open** an email that was flagged before opening, the side panel starts with *"⛔ WARNING: you were warned before opening this email"* (Gmail cannot pop up or block opening). The whole-mailbox scan for the dashboard is in the card menu (⋮). |
+| **Open email** | Side-panel card: score 0-100, verdict (🟢 Likely safe / 🟠 Suspicious / 🔴 Dangerous), every finding with its points and a plain-language explanation. Good signals (e.g. SPF/DKIM/DMARC pass) are shown too. |
+| **Check before opening** | Home screen (no email open): a search field, *"Checked 12 of 50 unread emails"*, the **unread** emails that were **not scanned yet** (25 per page), a blue *Scan N ticked emails* button with *Select all*, and an *Already scanned* list with its own search. Only the **sender headers** are checked (authentication, Reply-To, display name, domain age), 5 per click. After a scan an alert (*"⛔ 2 dangerous, 1 suspicious need attention"*) opens the **Scan overview**: 🔴 / 🟠 / 🟢 groups, each email with its score and main reason, tap for details and "If you had clicked". If you later **open** a flagged email, the side panel starts with *"⛔ WARNING: you were warned before opening this email"*. |
 | **Network intel** | For every domain in the email (sender, Reply-To, Return-Path, links): IP, hosting network (ASN), name servers, mail servers, registrar, registration date, TLS certificates. A domain registered days ago raises the score. |
 | **Campaigns** | Domains that share **rare** infrastructure (same private name server, IP, certificate, registration day) are grouped. A "bank" email and a "PayPal" email on the same server become one campaign. |
-| **Dashboard** | Built only from YOUR mailbox: every email you open or check is added right away, and *Scan mailbox* adds the rest (headers only, 50 per click, new emails first). Opened from the add-on with a one-time link: threats over time, scam types, campaign graph, who pretends to be whom, sender drift, riskiest senders, protection advice. |
+| **Dashboard** | Built only from YOUR mailbox: every email you open or check is added right away, and *Scan whole mailbox* (add-on menu ⋮) adds the rest (headers only, 50 per click, new emails first). Opened from the add-on with a one-time link: threats over time, scam types, campaign graph, who pretends to be whom, riskiest senders, protection advice. |
 | **If you had clicked** | For every Suspicious or Malicious email: the facts we found, a likely story in 3-4 steps mapped to MITRE ATT&CK, and protections for you, your IT admin and your organization. Always labeled *"Estimate based on common patterns, not a fact."* |
 
 ## Architecture
@@ -38,7 +38,7 @@ different-looking emails that come from the **same attacker infrastructure** int
    POST /scan-batch ─► same pipeline on headers ─► metadata store (data/, not in Git)
    POST /dashboard-token ─► one-time token ─► GET /dashboard ─► session cookie ─► dashboard page
                                                                    │
-                                            campaign graph, impersonation map, sender drift
+                                            campaign graph, impersonation map, riskiest senders
 ```
 
 **Code map**
@@ -102,7 +102,7 @@ It **never connects to, scans or probes attacker infrastructure.** This is a del
 | Attacker text in the UI (subject, sender name, domain) | Add-on cards escape `< > &`. The dashboard writes all email-derived text with `textContent` only. A strict Content-Security-Policy allows scripts from our own server only (the chart libraries are served locally from `dashboard/public/vendor`). |
 | SSRF through lookups (domains are attacker-controlled) | Domains are validated (only a-z, 0-9, `-`, `.`) before any lookup. HTTPS only. The host must resolve to public addresses, re-checked on every redirect (max 3). 8 s timeout, 2 MB size limit. Replay file names are safe because of the same validation. |
 | Unauthorized use of the backend | `X-API-Key` on every API route, compared in constant time. Fails closed if the server has no secret. |
-| Flooding / key guessing | 120 requests per minute per client (429 after that). JSON bodies limited to 5 MB, scan batches to 50 emails x 64 KB of headers. |
+| Flooding / key guessing | 120 requests per minute per client (429 after that). JSON bodies limited to 5 MB (64 KB for the headers-only check), scan batches to 50 emails x 64 KB of headers. |
 | Server reachable directly | It listens on `127.0.0.1` only. The only way in is the HTTPS tunnel. |
 | Leaking details in errors | A last error handler returns a short generic message. `X-Powered-By` is off. |
 | Dashboard link theft | Token is single-use and expires in 5 minutes. `Referrer-Policy: no-referrer`, `Cache-Control: no-store`, `frame-ancestors 'none'`. |
@@ -131,7 +131,7 @@ cp .env.example .env
 # put a random secret in .env:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
-npm test                 # 28 tests
+npm test                 # 77 tests
 npm run demo             # analyze every email in samples/
 npm run campaigns        # print campaigns, impersonation map, sender drift
 npm run demo:start       # server + ngrok tunnel; prints READY and the public URL
@@ -162,19 +162,23 @@ The `.example` domains in the samples do not exist, so their replay files are **
 
 ## Demo walkthrough
 
-1. **Open a phishing email** in the test account. The card shows 100/100 MALICIOUS with reasons like "Link text does not match its real destination: shows mybank.com but goes to login-update.example".
-2. **Open a real email** (e.g. from Google). It is likely safe, and the card shows the good signal "Sender is authenticated".
-3. **Go back to the inbox (no email open).** Tick a few emails in the add-on list and click *Scan selected emails*. You get the reasoning without opening anything.
-4. **In the add-on menu (⋮) choose *Scan whole mailbox (for dashboard)*, then click *Open dashboard*.** Show the campaign graph: the "bank" and "PayPal" emails are one campaign (same IP, name servers, certificate, registration day). The HR and "Google Docs" emails are linked by a rare mail server even though both sit on Cloudflare, and the Cloudflare links count only +0.1 / +0.3.
-5. **Sender drift:** "GitHub" first from github.com (Microsoft network), then from `github-account-notice.example` on a different network.
+1. **Home screen, before opening anything.** With no email open, the add-on lists the unread emails. Tick a few (for example *"Suspicious login from a new device"*, *"This week's offers"*, *"Your monthly GitHub summary"*) and click *Scan*. Only the sender headers are read; the emails stay unopened.
+2. **View results.** The Scan overview groups them: 🔴 *Dangerous. Do not open*, 🟠 *Suspicious. Be careful*, 🟢 *No strong red flags*, each with its score and main reason. Tap the 🔴 one: a red warning box, all the reasons, and **"If you had clicked"** (facts, likely steps with MITRE ATT&CK IDs, protections).
+3. **Open the dangerous email anyway.** The side panel starts with *"⛔ WARNING: you were warned before opening this email"*, then the full check: 100/100 Dangerous, with reasons like *"Link text does not match its real destination: shows mybank.com but goes to login-update.example"*.
+4. **Open a normal email** (e.g. the GitHub summary). It is 🟢 Likely safe, and the card shows the good signal *"Sender is authenticated"*.
+5. **Dashboard.** In the add-on menu (⋮) choose *Scan whole mailbox (for dashboard)*, then click *Open dashboard*. Show the campaign graph: the "bank" and "PayPal" emails are one campaign (same IP, name servers, certificate, registration day), the fake Microsoft emails are another, and the HR and "Google Docs" emails are linked by a rare mail server even though both sit on Cloudflare (the Cloudflare links count only +0.1 / +0.3).
 
-**Demo mailbox:** the test inbox is filled with 50 fictional emails (about 30 phishing in 4 campaigns, 20 normal) by a separate Apps Script project: see [seeder/README.md](seeder/README.md). It uses Gmail *import*, so nothing is sent to anyone, and the add-on never needs the "insert emails" permission.
+Optional, command line: `npm run campaigns` also shows *sender drift*: "GitHub" from github.com, then from `github-account-notice.example` on a different network.
+
+**Demo mailbox:** the test inbox is filled with 50 fictional emails (21 phishing in 5 campaigns, 9 suspicious, 20 normal) by a separate Apps Script project: see [seeder/README.md](seeder/README.md). It uses Gmail *import*, so nothing is sent to anyone, and the add-on never needs the "insert emails" permission.
 
 Without Gmail: `npm run seed-dashboard` fills the dashboard from `samples/` (headers only, the same as the real scan).
 
 ## Limitations and honest trade-offs
 
-- **Before opening, headers only.** The pre-open scan never sees links, attachments or the text, so a phish with clean authentication can pass it. It never says "safe" (it says *"No strong sender red flags"*), and the full check runs when you open the email.
+- **Before opening, headers only.** The pre-open scan never sees links, attachments or the text, so a phish with clean authentication can pass it. It never says "safe" (it says *"No strong red flags"*), and the full check runs when you open the email.
+- **Gmail add-on (CardService) limits.** Google decides fonts, sizes and layout: no custom CSS, no bigger buttons, three count lines instead of columns. A text field reacts only on Enter, so search is not live while typing. Gmail cannot pop up a window or block opening an email, so the "you were warned" message is in the side panel.
+- **What the add-on remembers.** Scan results are kept in User Properties (about 9 KB per value), so it remembers the last 120 scanned emails, and the list covers the newest 200 unread emails. *Reset scan history* (menu ⋮) clears it.
 - **Scenarios are estimates.** The facts are real (taken only from the findings), but the steps are a likely story based on common patterns, not what this attacker will do. There are no statistics. MITRE ATT&CK IDs and names were checked on attack.mitre.org (November 2026); T1656 "Impersonation" could not be checked and is not used.
 - **The score is an estimate.** Fixed weights chosen by hand, not trained on data. A clever phish with clean authentication and no links (e.g. a plain "call me" message) can score low. A legitimate bulk mailer can collect a few points.
 - **Campaigns and drift are estimates** based on shared infrastructure. Shared hosting can create false links. Rarity weighting reduces this, but does not remove it.

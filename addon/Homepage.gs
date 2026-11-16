@@ -1,10 +1,10 @@
 // Homepage.gs
 // The add-on "home screen": shown when NO email is open. Top to bottom:
 //   search -> alert after a scan ("View results") -> "Unread emails" (not scanned yet, tick them)
-//   -> Previous / Next, Page N -> "Scan N ticked emails" -> "Tick all on this page"
+//   -> Previous / Next, Page N -> "Scan N ticked emails" -> "Select all"
 //   -> "Already scanned" (with their tags; a tap opens the details, not the email).
 // "Open dashboard" is in the fixed footer, so it is always visible without scrolling.
-// The whole-mailbox scan is in the card menu (the three dots).
+// The card menu (the three dots) has the whole-mailbox scan and "Reset scan history".
 // This file builds the card and handles the clicks; ScannerCard.gs and Overview.gs build the pieces.
 
 function onHomepage(e) {
@@ -22,6 +22,8 @@ function buildHomepageCard(ticked, useSavedPage) {
   const rows = useSavedPage ? getPageRows() : loadPageRows();
   const menu = CardService.newCardAction().setText("Scan whole mailbox (for dashboard)")
     .setOnClickAction(CardService.newAction().setFunctionName("onMailboxScanClick"));
+  const reset = CardService.newCardAction().setText("Reset scan history")
+    .setOnClickAction(CardService.newAction().setFunctionName("onResetClick"));
   const count = rows.filter(function (row) { return ticked.indexOf(row.id) !== -1; }).length;
   return CardService.newCardBuilder()
     .addSection(topSection())
@@ -29,6 +31,7 @@ function buildHomepageCard(ticked, useSavedPage) {
     .addSection(actionsSection(count))
     .addSection(alreadyScannedSection(getScannedRows(), getChips(), getListState()))
     .addCardAction(menu)
+    .addCardAction(reset)
     .setFixedFooter(dashboardFooter())
     .build();
 }
@@ -42,17 +45,26 @@ function loadPageRows() {
   const chips = getChips();
   const all = listPage(listQuery(state), "", MAX_LISTED).ids;
   const notScanned = all.filter(function (id) { return !chips[id]; });
-  const scanned = all.filter(function (id) { return chips[id]; });
+  const scanned = scannedIds(state, all, chips);
   const start = state.page * PAGE_SIZE;
   state.next = notScanned.length > start + PAGE_SIZE ? "more" : ""; // "" = this is the last page
   state.total = all.length;
-  state.checked = scanned.length;
+  state.checked = all.length - notScanned.length;
+  state.scannedCount = scanned.length;
   saveListState(state);
   const rows = getRows(notScanned.slice(start, start + PAGE_SIZE).concat(scanned.slice(0, MAX_ALREADY_SCANNED)));
   const pageRows = rows.filter(function (row) { return !chips[row.id]; });
   savePageRows(pageRows);
   saveRows("SCANNED_ROWS", rows.filter(function (row) { return chips[row.id]; }));
   return pageRows;
+}
+
+// "Already scanned": the scanned ones among the unread list, or, when there is a search
+// in that part, the scanned emails of the WHOLE inbox (read ones too) that match it.
+function scannedIds(state, unreadIds, chips) {
+  if (!state.scannedQuery) return unreadIds.filter(function (id) { return chips[id]; });
+  const found = listPage("in:inbox " + state.scannedQuery, "", MAX_LISTED).ids;
+  return found.filter(function (id) { return chips[id]; });
 }
 
 // The search field, "Checked 12 of 50 unread emails", and the alert after a scan.
@@ -74,7 +86,7 @@ function listSection(rows, ticked) {
   return section;
 }
 
-// Each button in its own row: Scan, then Tick all under it.
+// Each button in its own row: Scan, then "Select all" under it.
 function actionsSection(tickedCount) {
   return CardService.newCardSection()
     .addWidget(scanButton(tickedCount))
@@ -134,7 +146,21 @@ function onSearchClick(e) {
   return safely(function () {
     const inputs = e.commonEventObject.formInputs || {};
     const query = inputs.query ? String(inputs.query.stringInputs.value[0]).trim().slice(0, 200) : "";
-    saveListState(newListState(query));
+    const state = newListState(query);
+    state.scannedQuery = getListState().scannedQuery || ""; // keep the "Already scanned" search
+    saveListState(state);
+    return redraw("", [], false);
+  });
+}
+
+// Runs when Enter is pressed in the "Already scanned" search field. Empty = all scanned.
+function onScannedSearchClick(e) {
+  return safely(function () {
+    const inputs = e.commonEventObject.formInputs || {};
+    const value = inputs.scanned_query ? String(inputs.scanned_query.stringInputs.value[0]).trim().slice(0, 200) : "";
+    const state = getListState();
+    state.scannedQuery = value;
+    saveListState(state);
     return redraw("", [], false);
   });
 }
@@ -213,6 +239,14 @@ function onScanRestClick(e) {
 function onOverviewClick(e) {
   return safely(function () {
     return CardService.newActionResponseBuilder().setNavigation(CardService.newNavigation().pushCard(buildOverviewCard())).build();
+  });
+}
+
+// Menu (three dots) -> "Reset scan history": every unread email shows again as not scanned.
+function onResetClick(e) {
+  return safely(function () {
+    resetScanHistory();
+    return redraw("Scan history cleared. Every unread email can be checked again.", [], false);
   });
 }
 
