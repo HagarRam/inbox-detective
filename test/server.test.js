@@ -5,6 +5,7 @@ const assert = require("node:assert");
 
 process.env.API_SECRET = "test-secret"; // set before loading the server (.env does not override it)
 const { app } = require("../server");
+const { readAll } = require("../dashboard/scanStore");
 
 let server;
 let base;
@@ -31,6 +32,13 @@ test("broken JSON gets a short answer, with no internal details", async () => {
   const res = await post("/analyze", "{ not json", "test-secret");
   assert.strictEqual(res.status, 400);
   assert.deepStrictEqual(await res.json(), { error: "Bad request" });
+});
+
+test("a strange id is not saved to the dashboard, but the email is still analyzed", async () => {
+  const before = readAll().length;
+  const res = await post("/analyze", JSON.stringify({ raw: "Subject: hi", id: "../../etc" }), "test-secret");
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(readAll().length, before);
 });
 
 test("sends safe headers and hides that it runs Express", async () => {

@@ -10,6 +10,8 @@ One add-on with two screens:
   **without opening them**.
 - **Mailbox dashboard (home screen):** "Scan mailbox" sends the **headers only** of the
   next 50 emails to `POST /scan-batch` (where it stopped is saved in User Properties).
+  Each click first adds the emails that arrived since the last click.
+  Every email you open or check is also added to the dashboard right away.
   "Open dashboard" asks the server for a one-time token and opens the dashboard
   in a new tab.
 

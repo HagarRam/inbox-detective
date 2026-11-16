@@ -18,7 +18,7 @@ different-looking emails that come from the **same attacker infrastructure** int
 | **Check before opening** | Home screen lists the 10 newest emails (sender + subject only). Tick some, click *Scan selected emails*, get the full reasoning for each. The emails stay unopened and unread. |
 | **Network intel** | For every domain in the email (sender, Reply-To, Return-Path, links): IP, hosting network (ASN), name servers, mail servers, registrar, registration date, TLS certificates. A domain registered days ago raises the score. |
 | **Campaigns** | Domains that share **rare** infrastructure (same private name server, IP, certificate, registration day) are grouped. A "bank" email and a "PayPal" email on the same server become one campaign. |
-| **Dashboard** | Whole-mailbox scan (headers only, 50 per click), opened from the add-on with a one-time link: threats over time, scam types, campaign graph, who pretends to be whom, sender drift, riskiest senders, protection advice. |
+| **Dashboard** | Built only from YOUR mailbox: every email you open or check is added right away, and *Scan mailbox* adds the rest (headers only, 50 per click, new emails first). Opened from the add-on with a one-time link: threats over time, scam types, campaign graph, who pretends to be whom, sender drift, riskiest senders, protection advice. |
 
 ## Architecture
 
@@ -30,7 +30,7 @@ different-looking emails that come from the **same attacker infrastructure** int
                               │
                               ▼
             Node.js + Express backend (listens on 127.0.0.1 only)
-   POST /analyze ─► parseEmail ─► analyzers ─► intel provider ─► score
+   POST /analyze ─► parseEmail ─► analyzers ─► intel provider ─► score (+ summary to the store)
                                                    │
                                      replay (saved files) | live (DNS, RDAP, crt.sh, ASN)
    POST /scan-batch ─► same pipeline on headers ─► metadata store (data/, not in Git)
@@ -79,7 +79,7 @@ The rules live in code. Nothing written inside an email can change them.
 - **Least privilege, and honest about the trade-off.** Reading only the open email needs `gmail.addons.current.message.readonly`. Checking emails *before* opening needs `gmail.readonly`, which is wider. I chose it for the feature, but kept it **read-only**: the add-on cannot send, change or delete mail. A first version added verdict labels, which needed `gmail.modify` (which also allows sending). I dropped the labels to drop that scope. I call the Gmail REST API directly instead of `GmailApp`, because `GmailApp` needs full mailbox access.
 - **Provider interface for intel (live / replay).** The same code works with real lookups or with saved answers. The demo works offline, gives the same result every time, and does not hit free-service limits.
 - **Rarity weighting.** Sharing Cloudflare or Google proves nothing: millions of sites do. A shared pivot on a huge shared service counts 10%. A pivot shared by more than 25 domains is skipped. A rare private name server or a shared certificate counts a lot.
-- **Dashboard gets metadata only.** The mailbox scan sends headers, never bodies. The server stores only sender, subject, date, score, finding titles and domain intel.
+- **Dashboard gets metadata only.** The mailbox scan sends headers, never bodies. An email you open or check is analyzed in full, but the server stores the same short summary for it: sender, subject, date, score, finding titles and domain intel. Never the body.
 - **One-time link instead of a password.** The add-on (which holds the API key) asks for a token. The token works once, for 5 minutes, and is swapped for a 30-minute `HttpOnly; Secure; SameSite=Lax` session cookie. It then disappears from the address bar.
 - **Simple code on purpose.** Plain JavaScript, small files, short functions, only 4 dependencies (express, mailparser, htmlparser2, dotenv). Pure logic is separate from I/O, so it is tested with `node --test` and no extra libraries.
 
@@ -174,7 +174,7 @@ Without Gmail: `npm run seed-dashboard` fills the dashboard from `samples/` (hea
 - **The score is an estimate.** Fixed weights chosen by hand, not trained on data. A clever phish with clean authentication and no links (e.g. a plain "call me" message) can score low. A legitimate bulk mailer can collect a few points.
 - **Campaigns and drift are estimates** based on shared infrastructure. Shared hosting can create false links. Rarity weighting reduces this, but does not remove it.
 - **Demo intel is partly synthetic** (fictional `.example` domains). Live mode works on real domains, but is slower (~6 s per email, crt.sh is often slow), so replay is the default.
-- **The dashboard scan uses headers only**, so link and attachment checks do not run there. This is the price of not sending bodies.
+- **The mailbox scan uses headers only**, so link and attachment checks do not run there. This is the price of not sending bodies. Emails you open or check one by one get the full check, and a later headers-only scan never overwrites it.
 - **Single user.** The store and sessions are in memory or in a local file, for one mailbox. Restarting the server ends dashboard sessions.
 - **The backend runs on my laptop** behind an ngrok tunnel. If the laptop sleeps, the add-on cannot reach it. The free ngrok plan shows a one-time warning page when the dashboard opens in a browser (click *Visit*).
 - **Apps Script limits:** one click may run 30 s, so scans go in chunks (5 selected emails, 50 headers).

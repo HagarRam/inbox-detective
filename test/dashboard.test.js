@@ -3,7 +3,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 const tokens = require("../dashboard/tokens");
-const { toRecord } = require("../dashboard/scanStore");
+const { toRecord, mergeRecords } = require("../dashboard/scanStore");
 const { buildDashboard } = require("../dashboard/buildDashboard");
 
 test("a dashboard token works exactly once", () => {
@@ -45,4 +45,14 @@ test("graph nodes and riskiest senders carry the verdict for the page colors", (
   const verdicts = data.graph.nodes.map((n) => n.id + ":" + n.verdict).sort();
   assert.deepStrictEqual(verdicts, ["a.example:malicious", "b.example:suspicious"]);
   assert.deepStrictEqual(data.riskiestSenders.map((s) => s.verdict), ["malicious", "suspicious"]);
+});
+
+test("a headers-only scan never replaces a whole-email check of the same email", () => {
+  const whole = { id: "a1", score: 80, fullEmail: true };
+  const headersOnly = { id: "a1", score: 40, fullEmail: false };
+  const newEmail = { id: "b2", score: 10, fullEmail: false };
+  const merged = mergeRecords([whole], [headersOnly, newEmail]);
+  assert.deepStrictEqual(merged, [whole, newEmail]);
+  // the other way round, the whole-email check wins
+  assert.deepStrictEqual(mergeRecords([headersOnly], [whole]), [whole]);
 });

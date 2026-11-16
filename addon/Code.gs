@@ -3,11 +3,12 @@
 // every time the user opens an email (see "contextualTriggers" in appsscript.json).
 //
 // Flow: get the raw email -> send it to the backend -> show the result in a card.
+// The server also adds the result to the dashboard (we send the email id).
 
 function onGmailMessageOpen(e) {
   try {
     const raw = getOpenedEmailRaw(e);
-    const result = callBackend(raw);
+    const result = callBackend(raw, e.gmail.messageId);
     return buildResultCard(result);
   } catch (err) {
     // Log the details for us; show the user only a short, safe message.
