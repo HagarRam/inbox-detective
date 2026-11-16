@@ -1,77 +1,106 @@
 // app.js
-// Draws the dashboard from /dashboard/data.
-//
-// Security: subjects, sender names and domains come from emails, which an
-// attacker controls. We put them on the page ONLY with textContent (plain text),
-// never as HTML, so "<script>" in a subject is shown as text and never runs.
+// Loads /dashboard/data and fills the page: tiles, tables and lists.
+// The charts are in charts.js, the campaign graph in graph.js, helpers in util.js.
 
-// Create an element with plain text inside.
-function el(tag, text, className) {
-  const node = document.createElement(tag);
-  if (text !== undefined) node.textContent = String(text);
-  if (className) node.className = className;
-  return node;
+// Charts and the graph drawn so far, so we can redraw them when the theme changes.
+let visuals = [];
+let lastData = null;
+
+// Draw (or redraw) everything that is painted on a canvas, in the current theme colors.
+function drawVisuals(data) {
+  for (const visual of visuals) visual.destroy(); // remove the old ones first
+  setupChartMotion(); // short Chart.js animation, or none with reduced motion
+  Chart.defaults.color = color("--muted"); // axis labels and legend text
+  Chart.defaults.borderColor = color("--border"); // grid lines
+  Chart.defaults.font.family = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+  const drawn = [drawTimeline(data.timeline), drawScamTypes(data.scamTypes), drawGraph(data.graph, data.campaigns)];
+  visuals = drawn.filter((v) => v !== null); // an empty chart draws nothing
 }
 
-// A table row from a list of cell texts.
-function addRow(tableId, cells) {
-  const row = el("tr");
-  for (const cell of cells) row.appendChild(el("td", cell));
-  document.querySelector("#" + tableId + " tbody").appendChild(row);
+// theme.js sends "themechange" when the theme switches.
+document.addEventListener("themechange", () => {
+  if (lastData) drawVisuals(lastData);
+});
+
+// One stat tile: icon, big number, label, and a small line under it.
+function makeTile(iconName, num, label, sub, css) {
+  const tile = el("div", undefined, "tile " + css);
+  const head = el("div", undefined, "tile-head");
+  head.appendChild(icon(iconName));
+  head.appendChild(el("span", label));
+  tile.appendChild(head);
+  tile.appendChild(el("div", "0", "num")); // the real number counts up later (see drawSummary)
+  tile.appendChild(el("div", sub, "label"));
+  return tile;
 }
 
-function color(name) {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-}
-
-function drawSummary(summary) {
-  const tiles = [
-    ["Emails scanned", summary.total || 0, ""],
-    ["Malicious", summary.malicious || 0, "bad"],
-    ["Suspicious", summary.suspicious || 0, "warn"],
-    ["Likely safe", summary["likely safe"] || 0, "good"],
-    ["Campaigns", summary.campaigns || 0, ""],
-  ];
+function drawSummary(summary, campaigns) {
+  const total = summary.total || 0;
+  let linked = 0; // how many emails belong to some campaign
+  for (const c of campaigns) linked += c.emails.length;
   const box = document.getElementById("summary");
-  for (const [label, num, cls] of tiles) {
-    const tile = el("div", undefined, "tile");
-    tile.appendChild(el("div", num, "num " + cls));
-    tile.appendChild(el("div", label, "label"));
-    box.appendChild(tile);
+  box.replaceChildren(); // remove the loading placeholders
+  const tiles = [makeTile("mail", total, "Emails scanned", "headers only", "")];
+  const targets = [total];
+  for (const key of ["malicious", "suspicious", "likely safe"]) {
+    const v = VERDICTS[key];
+    tiles.push(makeTile(v.icon, summary[key] || 0, v.word, (summary[key] || 0) + " of " + total + " (estimate)", "tile-" + v.css));
+    targets.push(summary[key] || 0);
   }
-}
-
-function drawTimeline(timeline) {
-  const series = [["malicious", "--bad"], ["suspicious", "--warn"], ["likely safe", "--good"]];
-  const datasets = series.map(([key, c]) => ({ label: key, data: timeline.map((d) => d[key]), backgroundColor: color(c) }));
-  new Chart(document.getElementById("timeline"), {
-    type: "bar",
-    data: { labels: timeline.map((d) => d.day), datasets },
-    options: { maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true, ticks: { precision: 0 } } } },
+  tiles.push(makeTile("campaign", summary.campaigns || 0, "Campaigns", linked + " emails linked (estimate)", ""));
+  targets.push(summary.campaigns || 0);
+  for (const tile of tiles) box.appendChild(tile);
+  // The numbers count up from 0 the first time the tiles are on screen.
+  onFirstView(box, () => {
+    tiles.forEach((tile, i) => countUp(tile.querySelector(".num"), targets[i]));
   });
 }
 
-function drawScamTypes(scamTypes) {
-  const labels = Object.keys(scamTypes);
-  new Chart(document.getElementById("scamTypes"), {
-    type: "bar",
-    data: { labels, datasets: [{ label: "emails", data: labels.map((l) => scamTypes[l]), backgroundColor: color("--accent") }] },
-    options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { precision: 0 } } } },
+// A score bar: the colored part is the score out of 100.
+function scoreBar(score, verdict) {
+  const cell = el("div", undefined, "score");
+  const bar = el("div", undefined, "bar");
+  const fill = el("div", undefined, "fill fill-" + (VERDICTS[verdict] || VERDICTS.suspicious).css);
+  fill.style.width = "0%"; // starts empty; drawSenders fills it (set from JS, which our CSP allows)
+  fill.dataset.score = score;
+  bar.appendChild(fill);
+  cell.appendChild(bar);
+  cell.appendChild(el("span", score, "score-num"));
+  return cell;
+}
+
+function drawSenders(senders) {
+  const body = document.querySelector("#senders tbody");
+  if (senders.length === 0) return showEmpty(document.getElementById("senders-box"));
+  for (const s of senders) {
+    const row = el("tr");
+    row.appendChild(el("td", s.name || "(no name)"));
+    row.appendChild(el("td", s.domain));
+    const verdictCell = el("td");
+    verdictCell.appendChild(verdictPill(s.verdict));
+    row.appendChild(verdictCell);
+    const scoreCell = el("td");
+    scoreCell.appendChild(scoreBar(s.maxScore, s.verdict));
+    row.appendChild(scoreCell);
+    row.appendChild(el("td", s.emails, "num-cell"));
+    body.appendChild(row);
+  }
+  // The bars grow to their score the first time the table is on screen (CSS transition).
+  onFirstView(body, () => {
+    for (const fill of body.querySelectorAll(".fill")) fill.style.width = fill.dataset.score + "%";
   });
 }
 
-function drawGraph(graph) {
-  const box = document.getElementById("graph");
-  if (graph.nodes.length === 0) {
-    box.appendChild(el("p", "No campaigns found yet.", "muted"));
-    return;
+function drawImpersonation(list) {
+  const body = document.querySelector("#impersonation tbody");
+  if (list.length === 0) return showEmpty(document.getElementById("impersonation-box"), "No brand impersonation found.");
+  for (const i of list) {
+    const row = el("tr");
+    row.appendChild(el("td", i.brand, "brand-cell"));
+    row.appendChild(el("td", i.domains.join(", ")));
+    row.appendChild(el("td", i.emails, "num-cell"));
+    body.appendChild(row);
   }
-  const options = {
-    nodes: { shape: "dot", size: 14, font: { color: color("--text"), size: 14 } },
-    edges: { color: { color: color("--muted") }, scaling: { min: 1, max: 6 } },
-    physics: { stabilization: true },
-  };
-  new vis.Network(box, { nodes: graph.nodes, edges: graph.edges }, options);
 }
 
 function drawCampaign(campaign) {
@@ -82,7 +111,7 @@ function drawCampaign(campaign) {
     list.appendChild(el("li", email.subject + "  (from " + (email.from ? email.from.domain : "?") + ")"));
   }
   box.appendChild(list);
-  box.appendChild(el("div", "Shared infrastructure:", "muted"));
+  box.appendChild(el("div", "Shared infrastructure (weight in brackets):", "small muted"));
   for (const reason of campaign.sharedInfrastructure) box.appendChild(el("span", reason, "chip"));
   return box;
 }
@@ -94,7 +123,7 @@ function drawCampaigns(campaigns) {
 
 function drawDrift(drift) {
   const box = document.getElementById("drift");
-  if (drift.length === 0) box.appendChild(el("p", "No sender drift found.", "muted"));
+  if (drift.length === 0) return showEmpty(box, "No sender drift found.");
   for (const d of drift) {
     box.appendChild(el("strong", '"' + d.name + '"'));
     const list = el("ul");
@@ -105,31 +134,33 @@ function drawDrift(drift) {
 
 function drawRecommendations(tips) {
   const list = document.getElementById("recommendations");
+  if (tips.length === 0) return showEmpty(list, "Nothing to recommend yet.");
   for (const tip of tips) {
     const item = el("li");
-    item.appendChild(el("span", tip.who + ": ", "who"));
-    item.appendChild(document.createTextNode(tip.text + " "));
-    item.appendChild(el("span", "(" + tip.because + ")", "muted"));
+    item.appendChild(el("span", tip.who, "who who-" + tip.who.toLowerCase()));
+    item.appendChild(el("span", tip.text));
+    item.appendChild(el("span", tip.because, "small muted because"));
     list.appendChild(item);
   }
 }
 
 async function main() {
+  setupReveal(); // sections slide in as you scroll
   const response = await fetch("/dashboard/data");
   if (!response.ok) {
     document.querySelector("main").replaceChildren(el("p", "Session expired. Open the dashboard again from the Gmail add-on."));
     return;
   }
   const data = await response.json();
-  drawSummary(data.summary);
-  drawTimeline(data.timeline);
-  drawScamTypes(data.scamTypes);
-  drawGraph(data.graph);
+  lastData = data;
+  drawSummary(data.summary, data.campaigns);
+  drawVisuals(data);
   drawCampaigns(data.campaigns);
-  for (const i of data.impersonation) addRow("impersonation", [i.brand, i.domains.join(", "), i.emails]);
+  drawSenders(data.riskiestSenders);
   drawDrift(data.senderDrift);
-  for (const s of data.riskiestSenders) addRow("senders", [s.name, s.domain, s.emails, s.maxScore]);
+  drawImpersonation(data.impersonation);
   drawRecommendations(data.recommendations);
+  document.body.classList.remove("loading"); // hide the loading placeholders
 }
 
 main();

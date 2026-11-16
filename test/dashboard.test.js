@@ -37,3 +37,12 @@ test("dashboard counts verdicts and days", () => {
   assert.deepStrictEqual(data.timeline, [{ day: "2026-11-10", malicious: 1, suspicious: 0, "likely safe": 1 }]);
   assert.deepStrictEqual(data.scamTypes, { "Brand impersonation": 1 });
 });
+
+test("graph nodes and riskiest senders carry the verdict for the page colors", () => {
+  const shared = { nameServers: ["ns1.rare.example"], registeredOn: "2026-11-03" };
+  const make = (id, domain, verdict, score) => ({ id, date: "2026-11-10", verdict, score, from: { name: id, domain }, findings: [], intel: [{ domain, ...shared }] });
+  const data = buildDashboard([make("a", "a.example", "malicious", 90), make("b", "b.example", "suspicious", 40)]);
+  const verdicts = data.graph.nodes.map((n) => n.id + ":" + n.verdict).sort();
+  assert.deepStrictEqual(verdicts, ["a.example:malicious", "b.example:suspicious"]);
+  assert.deepStrictEqual(data.riskiestSenders.map((s) => s.verdict), ["malicious", "suspicious"]);
+});
