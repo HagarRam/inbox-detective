@@ -110,7 +110,7 @@ test("(d) the pager: Previous off on page 1, Next off on the last page", () => {
 test("(e) every button has the right words, style, color and state", () => {
   assert.deepStrictEqual(looks(sandbox.scanButton(0)), ["Scan ticked emails", "FILLED", "#1a73e8", false]);
   assert.deepStrictEqual(looks(sandbox.scanButton(3)), ["Scan 3 ticked emails", "FILLED", "#1a73e8", false]);
-  assert.deepStrictEqual(looks(sandbox.tickAllButton()), ["Tick all on this page", "TEXT", undefined, false]);
+  assert.deepStrictEqual(looks(sandbox.tickAllButton()), ["Select all", "TEXT", undefined, false]);
   assert.deepStrictEqual(looks(sandbox.dashboardButton()), ["📊  Open dashboard", "FILLED", "#673ab7", false]);
   assert.deepStrictEqual(looks(sandbox.viewResultsButton()), ["View results", "FILLED", "#c5221f", false]);
   assert.deepStrictEqual(looks(sandbox.scanRestButton()), ["Scan the rest", "FILLED", "#1a73e8", false]);

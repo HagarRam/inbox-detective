@@ -185,7 +185,7 @@ function scanButton(tickedCount) {
 }
 
 function tickAllButton() {
-  return textButton("Tick all on this page", "onTickAllClick");
+  return textButton("Select all", "onTickAllClick");
 }
 
 function dashboardButton() {
