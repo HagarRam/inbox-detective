@@ -39,6 +39,9 @@ function matchingPhrases(findings) {
 
 function summarySentence(result) {
   const phrases = matchingPhrases(result.findings);
+  if (result.verdict === "likely safe" && result.mode === "headers-only") {
+    return "No strong sender red flags (headers only; links and attachments were not checked).";
+  }
   if (result.verdict === "likely safe") {
     const authenticated = result.findings.some((f) => f.id === "auth_pass");
     return "No strong warning signs found." + (authenticated ? " The sender is authenticated." : "");
