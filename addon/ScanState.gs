@@ -87,3 +87,12 @@ function getLastScan() {
 function saveLastScan(results) {
   saveJson("LAST_SCAN", results.slice(-MAX_LAST_SCAN));
 }
+
+// "Reset scan history": forget every scan result, so every unread email is shown again
+// as not scanned. (The email list, the queue and the alert start from zero.)
+const SCAN_MEMORY = ["SCAN_CHIPS", "LAST_SCAN", "SCAN_QUEUE", "PAGE_ROWS", "SCANNED_ROWS", "LIST_STATE"];
+
+function resetScanHistory() {
+  const props = PropertiesService.getUserProperties();
+  for (const key of SCAN_MEMORY) props.deleteProperty(key);
+}
