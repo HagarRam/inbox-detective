@@ -24,7 +24,9 @@ One add-on with two screens:
 | `GmailApi.gs` | Small read-only helpers for the Gmail API |
 | `MailboxScan.gs` | Scans the mailbox in chunks of 50, headers only |
 | `Backend.gs` | Calls the backend (analyze, scan batch, dashboard token) |
-| `Cards.gs` | Builds the result card |
+| `Cards.gs` | Builds the result card (verdict line, findings, primary button) |
+| `Summary.gs` | One plain-English summary sentence, built from fixed phrases |
+| `Errors.gs` | Turns technical errors into short, friendly messages |
 
 ## Security decisions
 
