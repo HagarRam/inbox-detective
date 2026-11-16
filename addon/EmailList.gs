@@ -4,13 +4,10 @@
 
 const PAGE_SIZE = 25;
 
-// The Gmail search for the list: inbox, unread only (unless "Show read emails too"),
-// plus the user's own search text, e.g. "in:inbox is:unread from:paypal".
+// The Gmail search for the list: unread inbox emails, plus the user's own search text,
+// e.g. "in:inbox is:unread from:paypal". Opened emails do not need a check before opening.
 function listQuery(state) {
-  let query = "in:inbox";
-  if (!state.showRead) query += " is:unread"; // opened emails do not need a check before opening
-  if (state.query) query += " " + state.query;
-  return query;
+  return "in:inbox is:unread" + (state.query ? " " + state.query : "");
 }
 
 // One page of email ids for a Gmail search. pageToken points to the page ("" = the first).

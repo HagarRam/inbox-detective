@@ -4,14 +4,15 @@ One add-on with two screens:
 
 - **An email is open:** the add-on reads that email as raw text, sends it to the backend
   `POST /analyze` (with the `X-API-Key` header) and shows the score, verdict and findings.
-- **No email is open (home screen), in 3 steps:** *Step 1: Find emails* lists the 25 newest
-  **unread** inbox emails (switch "Show read emails too") or a Gmail search (`from:paypal`).
-  *Step 2* ticks emails (Page N with Previous / Next above and below the list, *Tick all (this page)*).
-  *Step 3: Scan ticked emails* fetches only the **sender headers** (`format=metadata`), sends them to
-  `POST /analyze-headers`, 5 per click (*Continue scan* while more are waiting), and opens the
-  **Scan overview** card: what was checked / not checked, 🔴 / 🟠 / ⚪ counts, flagged emails first
-  (tap = details + "If you had clicked"), and *Scan the rest*. Opening an email runs the full check.
-- **Dashboard (whole mailbox), a separate section:** "Scan mailbox" reads ALL emails (not only unread) and sends the **headers only** of the
+- **No email is open (home screen):** a search field (Enter runs it, empty = the normal list),
+  a *Last scan* line with *View overview*, the 25 newest **unread** inbox emails with a checkbox
+  each, "‹ Page N ›" at the bottom, a blue *Scan ticked emails* button (*Tick all on this page*
+  under it, *Continue scan* while a scan runs) and a purple *Open dashboard* button.
+  The scan fetches only the **sender headers** (`format=metadata`), sends them to
+  `POST /analyze-headers`, 5 per click, and opens the **Scan overview** card: counts, what was
+  checked / not checked, *Needs your attention* (tap = details + "If you had clicked"),
+  *Scan the rest* and *Back to list*. Opening an email runs the full check.
+- **Dashboard (whole mailbox), in the card menu (⋮):** "Scan whole mailbox (for dashboard)" reads ALL emails (not only unread) and sends the **headers only** of the
   next 50 emails to `POST /scan-batch` (where it stopped is saved in User Properties).
   Each click first adds the emails that arrived since the last click.
   Every email you open or check is also added to the dashboard right away.
@@ -25,8 +26,8 @@ One add-on with two screens:
 | `appsscript.json` | Manifest: name, scopes, allowed URLs, the two triggers |
 | `Code.gs` | Runs when an email is opened |
 | `Homepage.gs` | Home screen: builds the card and handles every click |
-| `ScannerCard.gs` | Steps 1-3: search, rows with result tags, Page N, scan buttons, details card |
-| `Overview.gs` | The Scan overview card: checked / not checked, counts, flagged first, Scan the rest |
+| `ScannerCard.gs` | Search field, rows with result tags, ‹ Page N ›, buttons, details card |
+| `Overview.gs` | The Scan overview card: counts, checked / not checked, needs attention, Scan the rest |
 | `EmailList.gs` | One page of 25 emails (inbox or search), sender name, subject, date |
 | `ScanState.gs` | Memory between clicks: current page, scan queue, result tags (User Properties) |
 | `Scanner.gs` | Scans emails from their headers only, 5 per click |

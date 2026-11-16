@@ -1,6 +1,6 @@
 // ScanState.gs
 // A small memory between clicks, in User Properties (only this user can see it):
-//   LIST_STATE  which list is shown: the search text, "show read" and the page
+//   LIST_STATE  which list is shown: the search text and the page
 //   PAGE_ROWS   sender and subject of the emails on the shown page (for the Scan overview)
 //   SCAN_QUEUE  the emails still waiting to be scanned (5 per click)
 //   SCAN_CHIPS  the last result of each scanned email, for the tag on its row
@@ -16,14 +16,14 @@ function saveJson(key, value) {
   PropertiesService.getUserProperties().setProperty(key, JSON.stringify(value));
 }
 
-// { query, showRead, tokens, page, next }: tokens[page] is Gmail's token for the shown
-// page ("" for page 1), next is the token for the page after it.
-function newListState(query, showRead) {
-  return { query: query, showRead: showRead, tokens: [""], page: 0, next: "" };
+// { query, tokens, page, next }: tokens[page] is Gmail's token for the shown page
+// ("" for page 1), next is the token for the page after it.
+function newListState(query) {
+  return { query: query, tokens: [""], page: 0, next: "" };
 }
 
 function getListState() {
-  return readJson("LIST_STATE", newListState("", false));
+  return readJson("LIST_STATE", newListState(""));
 }
 
 function saveListState(state) {
