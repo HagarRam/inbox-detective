@@ -1,5 +1,5 @@
 // demoMailboxData.js
-// The 50 FICTIONAL demo emails: who sends them, when, and what they say.
+// The 58 FICTIONAL demo emails: who sends them, when, and what they say.
 // Phishing domains end with ".example" (reserved, never real). Normal emails come
 // from example.org / example.com / example.net (also reserved), plus GitHub.
 
@@ -121,4 +121,26 @@ const normal = [
   { name: "Mom", from: "mom@example.net", auth: "pass", date: "2026-10-30T19:00:00Z", subject: "Photos from the weekend", body: "<p>Here are the photos from the weekend.</p>" },
 ];
 
-module.exports = [...bankAndPaypal, ...microsoft, ...hrAndDocs, ...delivery, ...ceoFraud, ...githubFake, ...normal];
+// ---------- "Suspicious" (score 25-59): some warning signs, not enough for "Dangerous" ----------
+// They are added LAST (numbers 51-58), so the seeder can import only them (NEXT_INDEX = 50).
+// auth "none" = no authentication result; "softfail"/"fail" = forged-looking sender.
+const suspicious = [
+  { name: "Weekly Deals", from: "news@weekly-deals-mailer.example", auth: "softfail", date: "2026-11-14T09:00:00Z",
+    subject: "This week's offers", body: "<p>Our new offers for this week.</p>" + link("https://weekly-deals-mailer.example/offers", "See the offers") },
+  { name: "Amazon Orders", from: "orders@shop-order-notify.example", auth: "none", date: "2026-11-14T12:30:00Z",
+    subject: "Your order has shipped", body: "<p>Your order is on its way.</p>" + link("https://shop-order-notify.example/track", "Track your order") },
+  { name: "Tech Summit", from: "events@summit-tickets.example", replyTo: "tickets@ticket-desk-mail.example", returnPath: "bounce@mail-relay-hub.example", auth: "none", date: "2026-11-15T08:15:00Z",
+    subject: "Your ticket for Tech Summit 2026", body: "<p>Your ticket is ready. See you there.</p>" },
+  { name: "Netflix", from: "info@stream-account-mail.example", returnPath: "bounce@mail-relay-hub.example", auth: "none", date: "2026-11-15T19:00:00Z",
+    subject: "New shows this week", body: "<p>New shows were added this week.</p>" },
+  { name: "IT Helpdesk", from: "helpdesk@it-support-desk.example", auth: "fail", date: "2026-11-16T07:00:00Z",
+    subject: "Scheduled maintenance tonight", body: "<p>Scheduled maintenance tonight between 22:00 and 23:00.</p>" },
+  { name: "DocuSign", from: "docs@sign-request-mail.example", replyTo: "signer@docs-reply-box.example", auth: "none", date: "2026-11-16T10:20:00Z",
+    subject: "A document is waiting for your signature", body: "<p>Please review the document.</p>" + link("https://sign-request-mail.example/doc", "Review document") },
+  { name: "Delivery Update", from: "updates@parcel-status-news.example", auth: "softfail", date: "2026-11-16T13:40:00Z",
+    subject: "Your parcel is on its way", body: "<p>Your parcel left our warehouse.</p>" + link("http://parcel-status-news.example/track", "Track parcel") },
+  { name: "LinkedIn", from: "messages@network-invite-mail.example", auth: "none", date: "2026-11-16T16:05:00Z",
+    subject: "You have a new connection request", body: "<p>Someone wants to connect with you.</p>" },
+];
+
+module.exports = [...bankAndPaypal, ...microsoft, ...hrAndDocs, ...delivery, ...ceoFraud, ...githubFake, ...normal, ...suspicious];
