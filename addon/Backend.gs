@@ -37,12 +37,13 @@ function postToBackend(path, body) {
   return JSON.parse(response.getContentText());
 }
 
-// Analyze one full raw email.
-function callBackend(raw) {
+// Analyze one full raw email. "id" (the Gmail message id) tells the server
+// to also add the result to the dashboard.
+function callBackend(raw, id) {
   if (raw.length > MAX_EMAIL_CHARS) {
     throw new Error("This email is too large to analyze.");
   }
-  return postToBackend("/analyze", { raw: raw });
+  return postToBackend("/analyze", { raw: raw, id: id });
 }
 
 // The full https address of the dashboard, with a fresh one-time token.

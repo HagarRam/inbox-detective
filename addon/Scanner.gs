@@ -24,7 +24,7 @@ function listRecentEmails() {
 function scanOneEmail(messageId) {
   try {
     const raw = getRawEmail(messageId);
-    return { id: messageId, result: callBackend(raw) };
+    return { id: messageId, result: callBackend(raw, messageId) }; // also added to the dashboard
   } catch (err) {
     console.error("Could not scan " + messageId + ": " + err.message);
     return { id: messageId, error: err.message };

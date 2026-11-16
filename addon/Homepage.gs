@@ -57,8 +57,13 @@ function mailboxSection() {
 function onMailboxScanClick(e) {
   try {
     const result = scanNextChunk();
-    let text = "Scanned " + result.scanned + " emails (" + result.total + " in the dashboard).";
-    text += result.done ? " The whole mailbox is scanned." : " Click again to continue.";
+    let text;
+    if (result.newEmails) {
+      text = "Added " + result.scanned + " new emails (" + result.total + " in the dashboard). Click again to continue.";
+    } else {
+      text = "Scanned " + result.scanned + " emails (" + result.total + " in the dashboard).";
+      text += result.done ? " The whole mailbox is scanned." : " Click again to continue.";
+    }
     return notify(text);
   } catch (err) {
     console.error(err);
