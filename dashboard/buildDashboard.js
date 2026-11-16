@@ -5,7 +5,6 @@
 const { buildCampaigns } = require("../campaign/buildCampaigns");
 const { LINK_THRESHOLD } = require("../campaign/clusters");
 const { buildImpersonationMap } = require("../campaign/impersonation");
-const { findSenderDrift } = require("../campaign/senderDrift");
 const { scamType } = require("./scamTypes");
 const { buildRecommendations } = require("./recommendations");
 
@@ -86,7 +85,6 @@ function buildDashboard(records) {
     campaigns,
     graph: buildGraph(campaigns, links, risky),
     impersonation: buildImpersonationMap(risky),
-    senderDrift: findSenderDrift(records),
     riskiestSenders: buildRiskiestSenders(risky),
     recommendations: buildRecommendations(risky, campaigns),
   };

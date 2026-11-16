@@ -18,7 +18,7 @@ different-looking emails that come from the **same attacker infrastructure** int
 | **Check before opening** | Home screen: a search field (Enter), the **unread** inbox emails that were **not scanned yet** (25 per page, a checkbox each, *Previous / Next*), a blue *Scan N ticked emails* button (*Tick all on this page* under it) and a purple *Open dashboard* button fixed at the bottom of the panel. Only the sender headers are checked (authentication, Reply-To, display name, domain age), 5 per click. Scanned emails leave the list, and an alert appears: *"⛔ 2 dangerous, 1 suspicious emails need attention"* with a red *View results* button. The **Scan overview** shows the counts, what was checked and what was not, the emails that need attention (highest score first, tap for details and "If you had clicked"), and *Scan the rest*. If you later **open** an email that was flagged before opening, the side panel starts with *"⛔ WARNING: you were warned before opening this email"* (Gmail cannot pop up or block opening). The whole-mailbox scan for the dashboard is in the card menu (⋮). |
 | **Network intel** | For every domain in the email (sender, Reply-To, Return-Path, links): IP, hosting network (ASN), name servers, mail servers, registrar, registration date, TLS certificates. A domain registered days ago raises the score. |
 | **Campaigns** | Domains that share **rare** infrastructure (same private name server, IP, certificate, registration day) are grouped. A "bank" email and a "PayPal" email on the same server become one campaign. |
-| **Dashboard** | Built only from YOUR mailbox: every email you open or check is added right away, and *Scan mailbox* adds the rest (headers only, 50 per click, new emails first). Opened from the add-on with a one-time link: threats over time, scam types, campaign graph, who pretends to be whom, sender drift, riskiest senders, protection advice. |
+| **Dashboard** | Built only from YOUR mailbox: every email you open or check is added right away, and *Scan mailbox* adds the rest (headers only, 50 per click, new emails first). Opened from the add-on with a one-time link: threats over time, scam types, campaign graph, who pretends to be whom, riskiest senders, protection advice. |
 | **If you had clicked** | For every Suspicious or Malicious email: the facts we found, a likely story in 3-4 steps mapped to MITRE ATT&CK, and protections for you, your IT admin and your organization. Always labeled *"Estimate based on common patterns, not a fact."* |
 
 ## Architecture
@@ -38,7 +38,7 @@ different-looking emails that come from the **same attacker infrastructure** int
    POST /scan-batch ─► same pipeline on headers ─► metadata store (data/, not in Git)
    POST /dashboard-token ─► one-time token ─► GET /dashboard ─► session cookie ─► dashboard page
                                                                    │
-                                            campaign graph, impersonation map, sender drift
+                                            campaign graph, impersonation map, riskiest senders
 ```
 
 **Code map**
@@ -166,7 +166,7 @@ The `.example` domains in the samples do not exist, so their replay files are **
 2. **Open a real email** (e.g. from Google). It is likely safe, and the card shows the good signal "Sender is authenticated".
 3. **Go back to the inbox (no email open).** Tick a few emails in the add-on list and click *Scan selected emails*. You get the reasoning without opening anything.
 4. **In the add-on menu (⋮) choose *Scan whole mailbox (for dashboard)*, then click *Open dashboard*.** Show the campaign graph: the "bank" and "PayPal" emails are one campaign (same IP, name servers, certificate, registration day). The HR and "Google Docs" emails are linked by a rare mail server even though both sit on Cloudflare, and the Cloudflare links count only +0.1 / +0.3.
-5. **Sender drift:** "GitHub" first from github.com (Microsoft network), then from `github-account-notice.example` on a different network.
+5. **Sender drift (command line only):** `npm run campaigns` shows "GitHub" first from github.com (Microsoft network), then from `github-account-notice.example` on a different network. The dashboard does not show it.
 
 **Demo mailbox:** the test inbox is filled with 50 fictional emails (about 30 phishing in 4 campaigns, 20 normal) by a separate Apps Script project: see [seeder/README.md](seeder/README.md). It uses Gmail *import*, so nothing is sent to anyone, and the add-on never needs the "insert emails" permission.
 
