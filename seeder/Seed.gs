@@ -1,5 +1,5 @@
 // Seed.gs
-// Puts the 58 fictional demo emails (DemoEmails.gs) into the TEST Gmail inbox.
+// Puts the 50 fictional demo emails (DemoEmails.gs) into the TEST Gmail inbox.
 // Run importDemoEmails() from the editor. If it stops in the middle, run it again:
 // it continues from where it stopped (saved in the NEXT_INDEX script property).
 //
