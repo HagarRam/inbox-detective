@@ -4,11 +4,14 @@ One add-on with two screens:
 
 - **An email is open:** the add-on reads that email as raw text, sends it to the backend
   `POST /analyze` (with the `X-API-Key` header) and shows the score, verdict and findings.
-- **No email is open (home screen):** the add-on lists the 10 newest inbox emails
-  (sender and subject only) with checkboxes. Tick some and click "Scan selected":
-  the add-on fetches only their **sender headers** (`format=metadata`), sends them to
-  `POST /analyze-headers`, and shows the score, verdict and reasons for each one,
-  **without opening them**. Opening an email later runs the full check.
+- **No email is open (home screen):** the add-on lists the 25 newest inbox emails
+  (sender name, subject, date) with a checkbox each, and *Previous / Next* pages.
+  A search box runs any Gmail search (`from:paypal`, `newer_than:7d`) with the same rows.
+  Buttons: *Scan selected*, *Select all unread*, *Scan today's emails*. The add-on fetches
+  only the **sender headers** (`format=metadata`), sends them to `POST /analyze-headers`,
+  5 emails per click (*Continue scan* for the rest), and puts a result tag on each row,
+  **without opening them**. A Suspicious or Malicious row opens its reasons with a tap.
+  Opening an email later runs the full check.
 - **Mailbox dashboard (home screen):** "Scan mailbox" sends the **headers only** of the
   next 50 emails to `POST /scan-batch` (where it stopped is saved in User Properties).
   Each click first adds the emails that arrived since the last click.
@@ -22,8 +25,11 @@ One add-on with two screens:
 |---|---|
 | `appsscript.json` | Manifest: name, scopes, allowed URLs, the two triggers |
 | `Code.gs` | Runs when an email is opened |
-| `Homepage.gs` | Home screen: email list with checkboxes, scan button, results card |
-| `Scanner.gs` | Lists the newest emails and scans the ticked ones |
+| `Homepage.gs` | Home screen: builds the card and handles every click |
+| `ScannerCard.gs` | The email rows, result tags, scan buttons, Previous / Next, details card |
+| `EmailList.gs` | One page of 25 emails (inbox or search), sender name, subject, date |
+| `ScanState.gs` | Memory between clicks: current page, scan queue, result tags (User Properties) |
+| `Scanner.gs` | Scans emails from their headers only, 5 per click |
 | `GmailApi.gs` | Small read-only helpers for the Gmail API |
 | `MailboxScan.gs` | Scans the mailbox in chunks of 50, headers only |
 | `Backend.gs` | Calls the backend (analyze, scan batch, dashboard token) |
@@ -57,6 +63,7 @@ One add-on with two screens:
 - **Escaping:** text from the email is escaped before it is put in a card.
 - **No redirects:** the request to the backend never follows a redirect.
 - **Small batches:** one click scans at most 5 emails, because Google stops a click after 30 seconds.
+- **Search text is escaped** before it is shown on the card, like any text from an email.
 - **The list shows only sender and subject** (`format=metadata`), never the body.
   No part of the add-on uses `format=raw` before an email is opened.
 

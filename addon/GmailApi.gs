@@ -30,28 +30,6 @@ function gmailErrorReason(response) {
   }
 }
 
-// The ids of the newest emails in the inbox.
-function listInboxIds(max) {
-  const result = gmailGet("/messages?labelIds=INBOX&maxResults=" + max);
-  const ids = [];
-  for (const message of result.messages || []) {
-    ids.push(message.id);
-  }
-  return ids;
-}
-
-// Only the From and Subject of an email (no body), for the list on the home screen.
-function getFromAndSubject(messageId) {
-  const path = "/messages/" + messageId + "?format=metadata&metadataHeaders=From&metadataHeaders=Subject";
-  const headers = gmailGet(path).payload.headers || [];
-  const email = { id: messageId, from: "(unknown sender)", subject: "(no subject)" };
-  for (const header of headers) {
-    if (header.name === "From") email.from = header.value;
-    if (header.name === "Subject") email.subject = header.value;
-  }
-  return email;
-}
-
 // Layer 1 (before opening): the only headers the scanner asks Gmail for. No body.
 const PRE_OPEN_HEADERS = ["From", "Reply-To", "Return-Path", "Authentication-Results", "Received-SPF", "Subject", "Date", "Message-ID"];
 
