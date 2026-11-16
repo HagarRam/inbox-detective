@@ -18,8 +18,14 @@ const TOP_FINDINGS = 5; // shown at once; the rest are behind "show more"
 const VERDICT_LABELS = { malicious: "🔴 Malicious", suspicious: "🟠 Suspicious", "likely safe": "🟢 Likely safe" };
 
 // U+200E is an invisible "left-to-right mark". In Hebrew (right-to-left) Gmail,
-// numbers and brackets can be reordered ("100 / 0"); the marks keep this line in order.
+// numbers, brackets and full stops can jump to the wrong side ("Scan .2").
+// ltr() puts a mark on both sides of OUR English text, so it stays in order.
+// (Not used on email subjects: those may be Hebrew and must stay right-to-left.)
 const LTR = "‎";
+
+function ltr(text) {
+  return LTR + text + LTR;
+}
 
 function cardHeader(subtitle) {
   return CardService.newCardHeader()
@@ -33,14 +39,14 @@ function cardHeader(subtitle) {
 function verdictWidget(result) {
   return CardService.newDecoratedText()
     .setText("<b>" + (VERDICT_LABELS[result.verdict] || result.verdict) + "</b>")
-    .setBottomLabel(LTR + "Score: " + result.score + " out of 100 (estimate)" + LTR);
+    .setBottomLabel(ltr("Score: " + result.score + " out of 100 (estimate)"));
 }
 
 // Verdict, score and the one-sentence summary.
 function verdictSection(result) {
   return CardService.newCardSection()
     .addWidget(verdictWidget(result))
-    .addWidget(CardService.newTextParagraph().setText(escapeHtml(summarySentence(result))));
+    .addWidget(CardService.newTextParagraph().setText(ltr(escapeHtml(summarySentence(result)))));
 }
 
 // ✖ bad sign, ✔ good sign, • information only
@@ -60,7 +66,7 @@ function pointsText(points) {
 // One short row: symbol + title, the points above, a one-line detail below (muted).
 function findingRow(f) {
   return CardService.newDecoratedText()
-    .setTopLabel(LTR + pointsText(f.points) + LTR)
+    .setTopLabel(ltr(pointsText(f.points)))
     .setText(findingSymbol(f.points) + " <b>" + escapeHtml(f.title) + "</b>")
     .setBottomLabel(escapeHtml(shorten(f.detail, 100)))
     .setWrapText(true);
@@ -69,8 +75,8 @@ function findingRow(f) {
 // All findings (already sorted by impact). The first TOP_FINDINGS show; the rest fold away.
 function findingsSection(findings) {
   const count = findings.length === 1 ? "1 finding" : findings.length + " findings";
-  const section = CardService.newCardSection().setHeader("Why (" + count + ")");
-  if (findings.length === 0) return section.addWidget(CardService.newTextParagraph().setText("No signals found."));
+  const section = CardService.newCardSection().setHeader(ltr("Why (" + count + ")"));
+  if (findings.length === 0) return section.addWidget(CardService.newTextParagraph().setText(ltr("No signals found.")));
   for (const f of findings) section.addWidget(findingRow(f));
   if (findings.length > TOP_FINDINGS) section.setCollapsible(true).setNumUncollapsibleWidgets(TOP_FINDINGS);
   return section;
@@ -96,7 +102,7 @@ function buildResultCard(result) {
 
 // "message" may be a technical error; the user sees only the friendly version.
 function buildErrorCard(message) {
-  const text = CardService.newTextParagraph().setText("⚠ " + escapeHtml(friendlyError(message)));
+  const text = CardService.newTextParagraph().setText(ltr("⚠ " + escapeHtml(friendlyError(message))));
   return CardService.newCardBuilder()
     .setHeader(cardHeader("Could not analyze"))
     .addSection(CardService.newCardSection().addWidget(text))
