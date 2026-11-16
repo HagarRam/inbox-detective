@@ -15,7 +15,7 @@ different-looking emails that come from the **same attacker infrastructure** int
 | Layer | What the user sees |
 |---|---|
 | **Open email** | Side-panel card: score 0-100, verdict (🟢 likely safe / 🟠 suspicious / 🔴 malicious), every finding with its points and a plain-language explanation. Good signals (e.g. SPF/DKIM/DMARC pass) are shown too. |
-| **Check before opening** | Home screen lists the 10 newest emails (sender + subject only). Tick some, click *Scan selected emails*, get the full reasoning for each. The emails stay unopened and unread. |
+| **Check before opening** | Home screen lists the 10 newest emails (sender + subject only). Tick some, click *Scan selected*: only their sender headers are checked (authentication, Reply-To, display name, domain age). The emails stay unopened and unread. Opening one runs the full check. |
 | **Network intel** | For every domain in the email (sender, Reply-To, Return-Path, links): IP, hosting network (ASN), name servers, mail servers, registrar, registration date, TLS certificates. A domain registered days ago raises the score. |
 | **Campaigns** | Domains that share **rare** infrastructure (same private name server, IP, certificate, registration day) are grouped. A "bank" email and a "PayPal" email on the same server become one campaign. |
 | **Dashboard** | Built only from YOUR mailbox: every email you open or check is added right away, and *Scan mailbox* adds the rest (headers only, 50 per click, new emails first). Opened from the add-on with a one-time link: threats over time, scam types, campaign graph, who pretends to be whom, sender drift, riskiest senders, protection advice. |
@@ -31,6 +31,7 @@ different-looking emails that come from the **same attacker infrastructure** int
                               ▼
             Node.js + Express backend (listens on 127.0.0.1 only)
    POST /analyze ─► parseEmail ─► analyzers ─► intel provider ─► score (+ summary to the store)
+   POST /analyze-headers ─► sender headers only ─► header checks + From-domain intel ─► score
                                                    │
                                      replay (saved files) | live (DNS, RDAP, crt.sh, ASN)
    POST /scan-batch ─► same pipeline on headers ─► metadata store (data/, not in Git)
@@ -75,8 +76,8 @@ The rules live in code. Nothing written inside an email can change them.
 ## Key decisions and why
 
 - **Explainable rules instead of a black box.** Every point on the score has a sentence behind it. A security analyst (and the user) can check and argue with each one.
-- **Check before opening.** Opening an email can already leak information (a tracking pixel tells the sender the address is alive). The home-screen scan reads the email as raw text through the Gmail API. It is never rendered, images never load, and it stays unread.
-- **Least privilege, and honest about the trade-off.** Reading only the open email needs `gmail.addons.current.message.readonly`. Checking emails *before* opening needs `gmail.readonly`, which is wider. I chose it for the feature, but kept it **read-only**: the add-on cannot send, change or delete mail. A first version added verdict labels, which needed `gmail.modify` (which also allows sending). I dropped the labels to drop that scope. I call the Gmail REST API directly instead of `GmailApp`, because `GmailApp` needs full mailbox access.
+- **Check before opening.** Opening an email can already leak information (a tracking pixel tells the sender the address is alive). Two layers: before opening, the home-screen scan **reads headers only** (`format=metadata`, sent to `POST /analyze-headers`), never the body. It is never rendered, images never load, and it stays unread. When you open the email, the add-on runs the full check (links, attachments, content). Before opening, the add-on trusts only the **first** `Authentication-Results` header and only if it comes from `mx.google.com`, because lower copies may be written by the attacker.
+- **Least privilege, and honest about the trade-off.** Reading only the open email needs `gmail.addons.current.message.readonly`. Checking emails *before* opening needs `gmail.readonly`, which is wider. I chose it for the feature, but kept it **read-only**: it reads headers only before opening, and cannot send, change or delete mail. A first version added verdict labels, which needed `gmail.modify` (which also allows sending). I dropped the labels to drop that scope. I call the Gmail REST API directly instead of `GmailApp`, because `GmailApp` needs full mailbox access.
 - **Provider interface for intel (live / replay).** The same code works with real lookups or with saved answers. The demo works offline, gives the same result every time, and does not hit free-service limits.
 - **Rarity weighting.** Sharing Cloudflare or Google proves nothing: millions of sites do. A shared pivot on a huge shared service counts 10%. A pivot shared by more than 25 domains is skipped. A rare private name server or a shared certificate counts a lot.
 - **Dashboard gets metadata only.** The mailbox scan sends headers, never bodies. An email you open or check is analyzed in full, but the server stores the same short summary for it: sender, subject, date, score, finding titles and domain intel. Never the body.

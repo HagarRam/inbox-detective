@@ -5,9 +5,10 @@ One add-on with two screens:
 - **An email is open:** the add-on reads that email as raw text, sends it to the backend
   `POST /analyze` (with the `X-API-Key` header) and shows the score, verdict and findings.
 - **No email is open (home screen):** the add-on lists the 10 newest inbox emails
-  (sender and subject only) with checkboxes. Tick some and click "Scan selected emails":
-  a results card shows the score, verdict and reasons for each one,
-  **without opening them**.
+  (sender and subject only) with checkboxes. Tick some and click "Scan selected":
+  the add-on fetches only their **sender headers** (`format=metadata`), sends them to
+  `POST /analyze-headers`, and shows the score, verdict and reasons for each one,
+  **without opening them**. Opening an email later runs the full check.
 - **Mailbox dashboard (home screen):** "Scan mailbox" sends the **headers only** of the
   next 50 emails to `POST /scan-batch` (where it stopped is saved in User Properties).
   Each click first adds the emails that arrived since the last click.
@@ -34,11 +35,18 @@ One add-on with two screens:
 
 - **Why scan before opening:** opening an email can already leak information,
   for example a tracking pixel tells the sender "this address is alive".
-  The scanner reads the email only as raw text. It never shows it or loads its images,
-  and the email stays unread.
+  The scanner **reads headers only before opening** (From, Reply-To, Return-Path,
+  Authentication-Results, Received-SPF, Subject, Date, Message-ID). It never reads the
+  body, never shows the email or loads its images, and the email stays unread.
+  The price: links and attachments are not checked until you open the email.
+- **Only Gmail's own Authentication-Results counts:** Gmail adds its header at the top.
+  If the same header appears again lower down (maybe written by the attacker, maybe in
+  lower case), the add-on keeps the first one. If the first one is not from
+  `mx.google.com`, it is dropped and the result says "no authentication result".
 - **One add-on, honest trade-off:** to scan emails that are not open, the add-on needs
   `gmail.readonly` (read emails). This is wider than "only the open email", but it is
-  read-only: the add-on can **not** send, change or delete anything.
+  read-only. In one line: it **reads headers only before opening, and cannot send,
+  change or delete** anything.
   A first version added verdict labels to emails, which needed `gmail.modify`
   (which also allows sending). I dropped the labels and moved to `gmail.readonly`,
   so the extra feature costs as little permission as possible.
@@ -50,6 +58,7 @@ One add-on with two screens:
 - **No redirects:** the request to the backend never follows a redirect.
 - **Small batches:** one click scans at most 5 emails, because Google stops a click after 30 seconds.
 - **The list shows only sender and subject** (`format=metadata`), never the body.
+  No part of the add-on uses `format=raw` before an email is opened.
 
 ## Setup (test deployment)
 

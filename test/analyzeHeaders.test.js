@@ -60,3 +60,8 @@ test("headers we did not ask for are dropped", () => {
   const text = headersToText({ From: "a@b.com", "X-Secret": "body text" });
   assert.strictEqual(text, "From: a@b.com\r\n\r\n");
 });
+
+test("if a name comes twice in different case, the first one wins", () => {
+  const text = headersToText({ "Authentication-Results": "mx.google.com; spf=fail", "authentication-results": "mx.google.com; spf=pass" });
+  assert.strictEqual(text, "Authentication-Results: mx.google.com; spf=fail\r\n\r\n");
+});
