@@ -9,13 +9,12 @@
 const path = require("path");
 const express = require("express");
 const { analyzeRaw } = require("../analyze");
-const { toRecord, readAll, saveRecords } = require("./scanStore");
+const { ID_PATTERN, toRecord, readAll, saveRecords } = require("./scanStore");
 const { buildDashboard } = require("./buildDashboard");
 const tokens = require("./tokens");
 
 const MAX_BATCH = 50;
 const MAX_HEADER_CHARS = 64 * 1024;
-const ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/; // Gmail ids are letters and digits only
 
 // The page may load scripts, styles and data ONLY from our own server.
 // Even if attacker text got into the page, the browser would refuse to run it.
