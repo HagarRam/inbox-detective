@@ -99,3 +99,64 @@ test("(e) every button has the right words, style, color and state", () => {
   const [prev, next] = sandbox.pagerWidgets({ page: 0, next: "t" })[0].calls.map((c) => c[1][0]);
   assert.deepStrictEqual([looks(prev).slice(0, 2), looks(next).slice(0, 2)], [["Previous", "TEXT"], ["Next", "TEXT"]]);
 });
+
+// ---- The Scan overview card ----
+
+// Every piece of text the card would show (labels, headers, buttons), as plain strings.
+function allText(widget, out = []) {
+  for (const [, args] of widget.calls || []) {
+    for (const arg of args) {
+      if (typeof arg === "string") out.push(plain(arg));
+      else if (arg && arg.calls) allText(arg, out);
+    }
+  }
+  return out;
+}
+const sectionsOf = (card) => card.calls.filter((c) => c[0] === "addSection").map((c) => c[1][0]);
+const headerOf = (section) => plain(last(section, "setHeader") || "");
+const rowsOf = (section) => section.calls.filter((c) => c[0] === "addWidget").map((c) => c[1][0]).filter((w) => w.kind === "newDecoratedText");
+
+function overviewWith(results) {
+  props.LAST_SCAN = JSON.stringify(results);
+  props.PAGE_ROWS = "[]";
+  return sandbox.buildOverviewCard();
+}
+const entry = (id, verdict, score, top) => ({ id, verdict, score, sender: "S " + id, subject: "Subject " + id, top: top || "" });
+
+test("overview (a): sections in order, only for groups that have emails", () => {
+  const card = overviewWith([entry("a", "likely safe", 0), entry("b", "malicious", 95, "DMARC failed"), entry("c", "suspicious", 55, "Pretends to be microsoft")]);
+  assert.deepStrictEqual(sectionsOf(card).map(headerOf), ["", "🔴 Dangerous. Do not open", "🟠 Suspicious. Be careful", "🟢 No strong red flags", "How to read this", ""]);
+  const onlyBad = overviewWith([entry("b", "malicious", 95, "DMARC failed")]);
+  assert.deepStrictEqual(sectionsOf(onlyBad).map(headerOf), ["", "🔴 Dangerous. Do not open", "How to read this", ""]);
+  const counts = allText(sectionsOf(onlyBad)[0]).join(" | ");
+  for (const line of ["1 email checked", "🔴 1 Dangerous", "🟠 0 Suspicious", "🟢 0 No strong red flags"]) assert.ok(counts.includes(line), line);
+});
+
+test("overview (b): emails that were not flagged get green rows too", () => {
+  const card = overviewWith([entry("a", "likely safe", 0), entry("b", "malicious", 95)]);
+  const green = sectionsOf(card).find((s) => headerOf(s) === "🟢 No strong red flags");
+  assert.strictEqual(rowsOf(green).length, 1);
+  assert.strictEqual(plain(last(rowsOf(green)[0], "setText")), "<b>Subject a</b>");
+});
+
+test("overview (c): the bottom line has the score and the strongest warning sign", () => {
+  const card = overviewWith([entry("b", "malicious", 95, "Replies go to a different domain"), entry("a", "likely safe", 0), entry("d", "likely safe", 20, "Domain was registered very recently"), entry("e", "suspicious", 40)]);
+  const groups = sectionsOf(card).slice(1, -2); // the email groups, between the summary and "How to read this"
+  const labels = groups.flatMap(rowsOf).map((row) => plain(last(row, "setBottomLabel")));
+  assert.deepStrictEqual(labels, ["Score 95 · Replies go to a different domain", "Score 40", "Score 20 · Domain was registered very recently", "Score 0 · Sender checks passed"]);
+});
+
+test("overview (d): the word 'safe' never appears in the card", () => {
+  const card = overviewWith([entry("a", "likely safe", 0), entry("b", "malicious", 95, "DMARC failed"), entry("c", "suspicious", 55)]);
+  const text = allText(card).join(" ");
+  assert.ok(!/safe/i.test(text), "found 'safe' in: " + text);
+});
+
+test("overview (e): more than 10 emails in a group adds '+N more in the dashboard'", () => {
+  const many = [];
+  for (let i = 0; i < 13; i++) many.push(entry("m" + i, "malicious", 60 + i, "DMARC failed"));
+  const red = sectionsOf(overviewWith(many))[1];
+  assert.strictEqual(rowsOf(red).length, 10);
+  assert.ok(allText(red).includes("+3 more in the dashboard"));
+  assert.strictEqual(plain(last(rowsOf(red)[0], "setBottomLabel")), "Score 72 · DMARC failed"); // highest score first
+});

@@ -9,7 +9,7 @@
 // One property holds about 9 KB, so every list has a maximum size.
 
 const MAX_CHIPS = 120;
-const MAX_LAST_SCAN = 30;
+const MAX_LAST_SCAN = 25; // one page
 
 function readJson(key, fallback) {
   const text = PropertiesService.getUserProperties().getProperty(key);
@@ -68,7 +68,7 @@ function saveChip(id, result) {
   saveJson("SCAN_CHIPS", chips);
 }
 
-// [{ id, verdict, score, sender, subject }] of the current scan.
+// [{ id, verdict, score, sender, subject, top }] of the current scan (top = strongest warning sign).
 function getLastScan() {
   return readJson("LAST_SCAN", []);
 }
