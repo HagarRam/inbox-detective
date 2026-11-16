@@ -9,10 +9,14 @@
 
 function onGmailMessageOpen(e) {
   try {
-    const raw = getOpenedEmailRaw(e);
-    const result = callBackend(raw, e.gmail.messageId);
+    const message = getOpenedMessage(e);
+    // The scan saved its results under the Gmail API id. Gmail may give the event id in
+    // another form, so we ask the message for its own id and use that for both lookups.
+    const id = message.getId();
+    console.log("Opened email: event id " + e.gmail.messageId + ", message id " + id);
+    const result = callBackend(message.getRawContent(), id);
     // Was this email checked BEFORE it was opened, with a bad result? Then warn first.
-    const preOpen = getChips()[e.gmail.messageId];
+    const preOpen = getChips()[id];
     return buildResultCard(result, isFlagged(preOpen) ? preOpen : null);
   } catch (err) {
     // Log the details for us; show the user only a short, safe message.
@@ -21,11 +25,9 @@ function onGmailMessageOpen(e) {
   }
 }
 
-// Read the opened email as raw .eml text (headers + body).
-// Gmail gives a short-lived access token that works ONLY for this one email,
-// so the add-on cannot read the rest of the mailbox (least privilege).
-function getOpenedEmailRaw(e) {
+// The opened email. Gmail gives a short-lived access token that works ONLY for this
+// one email, so this part cannot read the rest of the mailbox (least privilege).
+function getOpenedMessage(e) {
   GmailApp.setCurrentMessageAccessToken(e.gmail.accessToken);
-  const message = GmailApp.getMessageById(e.gmail.messageId);
-  return message.getRawContent();
+  return GmailApp.getMessageById(e.gmail.messageId);
 }

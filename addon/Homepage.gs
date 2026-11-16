@@ -31,14 +31,17 @@ function buildHomepageCard(ticked, useSavedPage) {
     .build();
 }
 
-// One page of unread emails from Gmail, WITHOUT the ones already scanned.
+// The list works like a queue: first take up to 200 unread emails (ids only, one cheap call),
+// remove the ones already scanned, THEN cut pages of 25. Scanned or opened emails leave the
+// list and the next ones move up. Sender and subject are loaded only for the 25 shown.
 function loadPageRows() {
   const state = getListState();
-  const page = listPage(listQuery(state), state.tokens[state.page], PAGE_SIZE);
-  state.next = page.nextPageToken; // "" = this is the last page
-  saveListState(state);
   const chips = getChips();
-  const rows = getRows(page.ids.filter(function (id) { return !chips[id]; }));
+  const ids = listPage(listQuery(state), "", MAX_LISTED).ids.filter(function (id) { return !chips[id]; });
+  const start = state.page * PAGE_SIZE;
+  state.next = ids.length > start + PAGE_SIZE ? "more" : ""; // "" = this is the last page
+  saveListState(state);
+  const rows = getRows(ids.slice(start, start + PAGE_SIZE));
   savePageRows(rows);
   return rows;
 }
@@ -135,7 +138,6 @@ function onNextClick(e) {
   return safely(function () {
     const state = getListState();
     if (!state.next) return notify("This is the last page.");
-    state.tokens[state.page + 1] = state.next;
     state.page += 1;
     saveListState(state);
     return redraw("", [], false);
