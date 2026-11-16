@@ -139,7 +139,7 @@ function buildOneScanSection(scan) {
   for (let i = 0; i < result.findings.length && i < FINDINGS_PER_EMAIL; i++) {
     section.addWidget(findingRow(result.findings[i]));
   }
-  if (result.mode === "headers-only") section.addWidget(fullCheckHint());
+  if (result.mode === "headers-only") section.addWidget(fullCheckHint(result));
   return section;
 }
 

@@ -59,8 +59,14 @@ function verdictSection(result) {
 }
 
 // Shown under every headers-only result: the check is not complete yet.
-function fullCheckHint() {
-  return CardService.newTextParagraph().setText("<i>" + ltr("Open the email and run the add-on for a full check.") + "</i>");
+// But if the sender headers alone already say "malicious", do NOT send the user in.
+function fullCheckText(result) {
+  if (result.verdict === "malicious") return "Do not open this email.";
+  return "Open the email and run the add-on for a full check.";
+}
+
+function fullCheckHint(result) {
+  return CardService.newTextParagraph().setText("<i>" + ltr(fullCheckText(result)) + "</i>");
 }
 
 // ✖ bad sign, ✔ good sign, • information only
