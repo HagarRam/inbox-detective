@@ -86,9 +86,6 @@ The rules live in code. Nothing written inside an email can change them, and no 
 
 ```bash
 npm install
-cp .env.example .env     # set API_SECRET (random 32-byte hex)
-npm test                 # run the tests
-npm run demo             # analyze every email in samples/
 npm run demo:start       # server + ngrok tunnel, prints READY
 ```
 
