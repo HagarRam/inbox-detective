@@ -1,0 +1,27 @@
+{
+  "domain": "docs-sharing-notify.example",
+  "ips": [
+    "192.0.2.80"
+  ],
+  "asn": "AS13335",
+  "provider": "CLOUDFLARENET, US",
+  "nameServers": [
+    "ada.ns.cloudflare.com",
+    "bob.ns.cloudflare.com"
+  ],
+  "mailServers": [
+    "mx.hr-mail-relay.example"
+  ],
+  "registrar": "Demo Registrar Gamma (fictional)",
+  "registeredOn": "2026-11-12",
+  "certificates": {
+    "count": 1,
+    "ids": [
+      "9000000303"
+    ],
+    "issuers": [
+      "C=US, O=Google Trust Services, CN=WE1"
+    ]
+  },
+  "source": "synthetic demo data: fictional domain, IPs from documentation ranges (RFC 5737); AS13335/Cloudflare is used only as an example of a huge shared provider"
+}

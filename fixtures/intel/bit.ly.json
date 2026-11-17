@@ -1,0 +1,42 @@
+{
+  "domain": "bit.ly",
+  "ips": [
+    "67.199.248.11",
+    "67.199.248.10"
+  ],
+  "asn": "AS396982",
+  "provider": "GOOGLE-CLOUD-PLATFORM - Google LLC, US",
+  "nameServers": [
+    "ns-1372.awsdns-43.org",
+    "ns-1766.awsdns-28.co.uk",
+    "ns-276.awsdns-34.com",
+    "ns-705.awsdns-24.net",
+    "ns-cloud-c1.googledomains.com",
+    "ns-cloud-c2.googledomains.com",
+    "ns-cloud-c3.googledomains.com",
+    "ns-cloud-c4.googledomains.com"
+  ],
+  "mailServers": [
+    "alt1.aspmx.l.google.com",
+    "alt2.aspmx.l.google.com",
+    "aspmx.l.google.com",
+    "aspmx2.googlemail.com",
+    "aspmx3.googlemail.com"
+  ],
+  "registrar": "Libyan Spider Network (int)",
+  "registeredOn": "2008-05-17",
+  "certificates": {
+    "count": 63,
+    "ids": [
+      "28373403297",
+      "28279970210",
+      "29104223198",
+      "28373440260",
+      "24679068864"
+    ],
+    "issuers": [
+      "C=US, O=Amazon, CN=Amazon RSA 2048 M01"
+    ]
+  },
+  "source": "recorded live on 2026-11-15"
+}
